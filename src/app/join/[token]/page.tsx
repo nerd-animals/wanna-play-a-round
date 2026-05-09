@@ -101,19 +101,19 @@ export default async function JoinTeamPage({ params, searchParams }: Props) {
           <CardHeader>
             <CardTitle>멤버 등록 테스트</CardTitle>
             <CardDescription>
-              RSO는 나중에 붙일 예정이라 지금은 표시 이름만 입력합니다. 중요한 것은 팀 멤버와 초대 링크
-              사용량이 저장되는지입니다.
+              RSO 승인 전까지는 Riot ID를 직접 입력해 임시 검증으로 처리합니다. 승인 후에는 이 입력을 RSO
+              세션으로 교체하면 됩니다.
             </CardDescription>
           </CardHeader>
           <CardContent>
             <form action={`/api/invite-links/${token}/join`} method="post" className="grid gap-5">
               <div className="grid gap-2">
-                <Label htmlFor="displayName">표시 이름</Label>
+                <Label htmlFor="riotId">Riot ID</Label>
                 <Input
-                  id="displayName"
-                  name="displayName"
-                  placeholder="Midnight Top"
-                  required={!sessionUser}
+                  id="riotId"
+                  name="riotId"
+                  placeholder="Hide on bush#KR1"
+                  required
                 />
               </div>
               <div className="flex flex-wrap gap-3 pt-2">

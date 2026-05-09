@@ -1,7 +1,28 @@
 import { describe, it, expect } from 'vitest';
-import { exchangeCodeForSession } from './riot';
+import { createProvisionalRiotSession, exchangeCodeForSession } from './riot';
 import { server } from '@/tests/mocks/server';
 import { http, HttpResponse } from 'msw';
+
+describe('Riot Service - Provisional Riot ID Mode', () => {
+  it('RSO 승인 전 Riot ID 문자열로 임시 세션을 만든다', () => {
+    const session = createProvisionalRiotSession(' Hide on bush # kr1 ');
+
+    expect(session).toEqual({
+      puuid: 'provisional:hide on bush#kr1',
+      gameName: 'Hide on bush',
+      tagLine: 'KR1',
+      accessToken: 'provisional-riot-id',
+      expiresAt: expect.any(Number),
+    });
+    expect(session.expiresAt).toBeGreaterThan(Date.now());
+  });
+
+  it('Riot ID 형식이 gameName#tagLine이 아니면 실패한다', () => {
+    expect(() => createProvisionalRiotSession('Hide on bush')).toThrow('INVALID_RIOT_ID');
+    expect(() => createProvisionalRiotSession('#KR1')).toThrow('INVALID_RIOT_ID');
+    expect(() => createProvisionalRiotSession('Hide#KR1#extra')).toThrow('INVALID_RIOT_ID');
+  });
+});
 
 describe('Riot Service - RSO Logic (TDD: Comprehensive Edge Cases)', () => {
   const RIOT_TOKEN_URL = 'https://auth.riotgames.com/token';

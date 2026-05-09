@@ -1,10 +1,33 @@
 import 'server-only';
 import { UserSession, RsoTokenResponse, RsoUserInfo } from '@/shared/types/auth';
 
+function normalizeRiotIdPart(value: string): string {
+  return value.trim().replace(/\s+/g, ' ');
+}
+
+export function createProvisionalRiotSession(riotId: string): UserSession {
+  const trimmed = riotId.trim();
+  const [rawGameName, rawTagLine, ...rest] = trimmed.split('#');
+  const gameName = normalizeRiotIdPart(rawGameName ?? '');
+  const tagLine = normalizeRiotIdPart(rawTagLine ?? '').toUpperCase();
+
+  if (!trimmed || !gameName || !tagLine || rest.length > 0) {
+    throw new Error('INVALID_RIOT_ID');
+  }
+
+  return {
+    puuid: `provisional:${gameName.toLowerCase()}#${tagLine.toLowerCase()}`,
+    gameName,
+    tagLine,
+    accessToken: 'provisional-riot-id',
+    expiresAt: Date.now() + 1000 * 60 * 60 * 24 * 30,
+  };
+}
+
 /**
  * 라이엇 인증 코드(code)를 사용하여 세션 정보를 획득합니다.
  * @param code 라이엇 RSO 인증 후 전달받은 authorization_code
- * @throws INVALID_AUTH_CODE, RIOT_AUTH_FAILED, RIOT_RATE_LIMITED, RIOT_SERVER_ERROR, 
+ * @throws INVALID_AUTH_CODE, RIOT_AUTH_FAILED, RIOT_RATE_LIMITED, RIOT_SERVER_ERROR,
  *         RIOT_USERINFO_FAILED, MALFORMED_RIOT_RESPONSE, LOL_ACCOUNT_NOT_FOUND
  */
 export async function exchangeCodeForSession(code: string): Promise<UserSession> {

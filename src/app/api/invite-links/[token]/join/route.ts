@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/server/actions/auth";
 import { joinTeamByInviteAction } from "@/server/actions/invite-links";
+import { createProvisionalRiotSession } from "@/server/services/riot";
 
 type Context = {
   params: Promise<{ token: string }>;
@@ -15,10 +16,16 @@ export async function POST(
   const formData = await request.formData();
 
   try {
+    const riotId = String(formData.get("riotId") ?? "").trim();
+    const provisionalSession = riotId ? createProvisionalRiotSession(riotId) : null;
+    const displayName = provisionalSession
+      ? `${provisionalSession.gameName}#${provisionalSession.tagLine}`
+      : String(formData.get("displayName") ?? "").trim() || undefined;
+
     const result = await joinTeamByInviteAction({
       token,
       sessionUserId: user?.id,
-      displayName: String(formData.get("displayName") ?? "").trim() || undefined,
+      displayName,
     });
 
     return NextResponse.redirect(

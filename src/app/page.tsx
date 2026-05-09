@@ -52,7 +52,7 @@ export default async function Home({ searchParams }: Props) {
               </h1>
               <p className="max-w-2xl text-base leading-7 text-muted-foreground sm:text-lg">
                 현재 범위는 Discord 로그인, 팀 생성, 초대 링크 발급, 링크 기반 팀 합류, 매칭 등록까지입니다.
-                Riot 연동 전 단계의 운영 플로우를 먼저 검증합니다.
+                RSO 승인 전에는 Riot ID 직접 입력으로 운영 플로우를 먼저 검증합니다.
               </p>
             </div>
             <div className="flex flex-wrap gap-3">
@@ -156,8 +156,8 @@ export default async function Home({ searchParams }: Props) {
             </div>
             <Separator />
             <p className="text-sm leading-7 text-muted-foreground">
-              RSO는 API 키와 권한 준비 후 다시 붙일 예정입니다. 이번 리디자인에서는 팀 관리와 매칭
-              등록 흐름이 더 선명하게 보이는 것이 목표입니다.
+              RSO는 API 키와 권한 준비 후 다시 붙일 예정입니다. 지금은 Riot ID 직접 입력을 임시 검증으로 사용해
+              팀 관리와 매칭 등록 흐름이 더 선명하게 보이는 것이 목표입니다.
             </p>
           </CardContent>
         </Card>
