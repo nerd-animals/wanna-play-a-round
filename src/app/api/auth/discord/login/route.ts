@@ -1,12 +1,15 @@
 import { NextResponse } from "next/server";
-import { startDiscordLoginAction } from "@/server/actions/auth";
+import { startDiscordLogin } from "@/server/handlers/auth";
 
 export async function GET(request: Request): Promise<NextResponse> {
   try {
-    return NextResponse.redirect(await startDiscordLoginAction());
-  } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "DISCORD_OAUTH_NOT_CONFIGURED";
+    const result = await startDiscordLogin();
+    if (!result.ok) {
+      return NextResponse.redirect(new URL(`/?error=${result.code}`, request.url));
+    }
+    return NextResponse.redirect(result.data.authorizeUrl);
+  } catch (e) {
+    const message = e instanceof Error ? e.message : "DISCORD_OAUTH_NOT_CONFIGURED";
     return NextResponse.redirect(new URL(`/?error=${message}`, request.url));
   }
 }

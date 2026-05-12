@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server";
-import { getCurrentUser } from "@/server/actions/auth";
+import { currentUser } from "@/server/handlers/auth";
+import { statusFromError } from "@/shared/api";
 
 export async function GET(): Promise<NextResponse> {
-  const user = await getCurrentUser();
-  return NextResponse.json({ user });
+  const result = await currentUser();
+  return NextResponse.json(result, {
+    status: result.ok ? 200 : statusFromError(result.code),
+  });
 }

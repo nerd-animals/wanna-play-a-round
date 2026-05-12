@@ -9,8 +9,8 @@ import { Badge } from "@/client/components/ui/badge";
 import { Button } from "@/client/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/client/components/ui/card";
 import { Separator } from "@/client/components/ui/separator";
-import { getCurrentUser } from "@/server/actions/auth";
-import { getMyTeamAction } from "@/server/actions/teams";
+import { _getMyTeam } from "@/server/handlers/team";
+import { getCurrentUser } from "@/server/session";
 
 type Props = {
   searchParams: Promise<{ error?: string }>;
@@ -38,7 +38,8 @@ const quickFlow = [
 export default async function Home({ searchParams }: Props) {
   const user = await getCurrentUser();
   const query = await searchParams;
-  const team = user ? await getMyTeamAction(user.id) : null;
+  const teamResult = user ? await _getMyTeam({}, { actor: user }) : null;
+  const team = teamResult?.ok ? teamResult.data : null;
 
   return (
     <AppShell>
@@ -119,8 +120,8 @@ export default async function Home({ searchParams }: Props) {
             />
             <StatCard
               label="저장 계층"
-              value="Supabase / Memory"
-              hint="환경변수 유무에 따라 실제 DB 또는 메모리 저장소로 동작합니다."
+              value="Supabase"
+              hint="환경변수가 설정돼야 동작합니다."
             />
           </div>
         </CardContent>

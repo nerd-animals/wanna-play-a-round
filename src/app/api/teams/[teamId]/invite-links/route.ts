@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getCurrentUser } from "@/server/actions/auth";
-import { createInviteLinkAction } from "@/server/actions/invite-links";
+import { createInviteLink } from "@/server/handlers/invite";
 
 type Context = {
   params: Promise<{ teamId: string }>;
@@ -10,27 +9,31 @@ export async function POST(
   request: NextRequest,
   context: Context,
 ): Promise<NextResponse> {
-  const user = await getCurrentUser();
   const { teamId } = await context.params;
-
-  if (!user) {
-    return NextResponse.redirect(new URL("/", request.url));
-  }
-
   const formData = await request.formData();
   const maxUsesValue = String(formData.get("maxUses") ?? "").trim();
   const expiresAt = String(formData.get("expiresAt") ?? "").trim();
 
   try {
-    await createInviteLinkAction({
+    const result = await createInviteLink({
       teamId,
-      actorUserId: user.id,
       maxUses: maxUsesValue ? Number(maxUsesValue) : undefined,
       expiresAt: expiresAt || undefined,
     });
-    return NextResponse.redirect(new URL(`/teams/${teamId}?inviteCreated=1`, request.url));
-  } catch (error) {
-    const code = error instanceof Error ? error.message : "unknown";
-    return NextResponse.redirect(new URL(`/teams/${teamId}?error=${code}`, request.url));
+    if (!result.ok) {
+      const target =
+        result.code === "UNAUTHORIZED"
+          ? "/"
+          : `/teams/${teamId}?error=${result.code}`;
+      return NextResponse.redirect(new URL(target, request.url));
+    }
+    return NextResponse.redirect(
+      new URL(`/teams/${teamId}?inviteCreated=1`, request.url),
+    );
+  } catch (e) {
+    const code = e instanceof Error ? e.message : "unknown";
+    return NextResponse.redirect(
+      new URL(`/teams/${teamId}?error=${code}`, request.url),
+    );
   }
 }

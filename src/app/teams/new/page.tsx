@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/cli
 import { Input } from "@/client/components/ui/input";
 import { Label } from "@/client/components/ui/label";
 import { Textarea } from "@/client/components/ui/textarea";
-import { getCurrentUser } from "@/server/actions/auth";
+import { getCurrentUser } from "@/server/session";
 
 type Props = {
   searchParams: Promise<{ error?: string }>;

@@ -9,9 +9,10 @@ import { Button } from "@/client/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/client/components/ui/card";
 import { Input } from "@/client/components/ui/input";
 import { Label } from "@/client/components/ui/label";
-import { getCurrentUser, isSupabaseConfiguredAction } from "@/server/actions/auth";
-import { getInviteLinkAction } from "@/server/actions/invite-links";
-import { getTeamViewAction } from "@/server/actions/teams";
+import { isSupabaseConfigured } from "@/server/db/client";
+import { getInviteLink } from "@/server/handlers/invite";
+import { getTeamView } from "@/server/handlers/team";
+import { getCurrentUser } from "@/server/session";
 
 type Props = {
   params: Promise<{ token: string }>;
@@ -21,17 +22,19 @@ type Props = {
 export default async function JoinTeamPage({ params, searchParams }: Props) {
   const { token } = await params;
   const query = await searchParams;
-  const inviteLink = await getInviteLinkAction(token);
   const sessionUser = await getCurrentUser();
 
-  if (!inviteLink) {
+  const linkResult = await getInviteLink({ token });
+  if (!linkResult.ok || !linkResult.data) {
     notFound();
   }
+  const inviteLink = linkResult.data;
 
-  const { team } = await getTeamViewAction(inviteLink.teamId);
-  if (!team) {
+  const viewResult = await getTeamView({ teamId: inviteLink.teamId });
+  if (!viewResult.ok) {
     notFound();
   }
+  const { team } = viewResult.data;
 
   return (
     <AppShell>
@@ -89,7 +92,7 @@ export default async function JoinTeamPage({ params, searchParams }: Props) {
               />
               <StatCard
                 label="저장소"
-                value={isSupabaseConfiguredAction() ? "Supabase" : "In-memory fallback"}
+                value={isSupabaseConfigured() ? "Supabase" : "환경변수 미설정"}
               />
             </div>
             <CheckItem title="초대 링크가 ACTIVE 상태인지 확인합니다." done={inviteLink.status === "ACTIVE"} />

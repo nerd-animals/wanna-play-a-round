@@ -4,8 +4,8 @@ import { CheckItem } from "@/client/components/check-item";
 import { MatchPostForm } from "@/client/components/match-post-form";
 import { StatusAlert } from "@/client/components/status-alert";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/client/components/ui/card";
-import { getCurrentUser } from "@/server/actions/auth";
-import { getTeamViewAction } from "@/server/actions/teams";
+import { getTeamView } from "@/server/handlers/team";
+import { getCurrentUser } from "@/server/session";
 
 type Props = {
   params: Promise<{ teamId: string }>;
@@ -34,10 +34,11 @@ export default async function NewMatchPage({ params, searchParams }: Props) {
     redirect("/");
   }
 
-  const { team } = await getTeamViewAction(teamId);
-  if (!team) {
+  const result = await getTeamView({ teamId });
+  if (!result.ok) {
     notFound();
   }
+  const { team } = result.data;
 
   if (team.ownerUserId !== user.id) {
     redirect("/dashboard");

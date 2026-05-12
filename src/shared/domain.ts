@@ -1,11 +1,3 @@
-export type TeamMemberRole = "OWNER" | "MEMBER";
-
-export type TeamMemberStatus = "PENDING" | "ACTIVE" | "REMOVED";
-
-export type InviteLinkStatus = "ACTIVE" | "EXPIRED" | "DISABLED";
-
-export type MatchPostStatus = "OPEN" | "CLOSED" | "CANCELLED";
-
 export type LolTier =
   | "IRON"
   | "BRONZE"
@@ -18,15 +10,18 @@ export type LolTier =
   | "GRANDMASTER"
   | "CHALLENGER";
 
-export interface User {
+export type TeamMemberRole = "OWNER" | "MEMBER";
+export type TeamMemberStatus = "PENDING" | "ACTIVE" | "REMOVED";
+export type InviteLinkStatus = "ACTIVE" | "EXPIRED" | "DISABLED";
+export type MatchPostStatus = "OPEN" | "CLOSED" | "CANCELLED";
+
+export interface UserView {
   id: string;
-  discordUserId: string;
   username: string;
   avatarUrl?: string;
-  createdAt: string;
 }
 
-export interface Team {
+export interface TeamView {
   id: string;
   ownerUserId: string;
   name: string;
@@ -36,7 +31,7 @@ export interface Team {
   updatedAt: string;
 }
 
-export interface TeamMember {
+export interface TeamMemberView {
   id: string;
   teamId: string;
   userId?: string;
@@ -47,7 +42,7 @@ export interface TeamMember {
   joinedAt?: string;
 }
 
-export interface TeamInviteLink {
+export interface TeamInviteLinkView {
   id: string;
   teamId: string;
   token: string;
@@ -59,7 +54,7 @@ export interface TeamInviteLink {
   createdAt: string;
 }
 
-export interface MatchPost {
+export interface MatchPostView {
   id: string;
   teamId: string;
   title: string;
