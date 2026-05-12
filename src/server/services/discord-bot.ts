@@ -1,7 +1,14 @@
 import "server-only";
-import { DiscordGuildMember } from "@/shared/types/discord";
 
 const DISCORD_API_BASE = "https://discord.com/api";
+
+export interface DiscordGuildMember {
+  userId: string;
+  nickname?: string;
+  roleIds: string[];
+  joinedAt?: string;
+  isPending: boolean;
+}
 
 type DiscordGuildMemberResponse = {
   user?: {

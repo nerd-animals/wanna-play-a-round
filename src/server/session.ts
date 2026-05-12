@@ -1,10 +1,13 @@
 import "server-only";
 import { cookies } from "next/headers";
-import { User } from "@/shared/types/core";
-import { repositories } from "@/server/repositories";
+import type { UserView } from "@/shared/domain";
+import { queries } from "./db/queries";
+import { rowToUserView } from "./db/mappers";
 
 const SESSION_COOKIE = "sf_owner_session";
 const STATE_COOKIE = "sf_discord_oauth_state";
+
+export type SessionUser = UserView;
 
 export async function setSessionUser(userId: string): Promise<void> {
   const cookieStore = await cookies();
@@ -40,12 +43,11 @@ export async function popDiscordOAuthState(): Promise<string | null> {
   return state;
 }
 
-export async function getSessionUser(): Promise<User | null> {
+export async function getCurrentUser(): Promise<SessionUser | null> {
   const cookieStore = await cookies();
   const userId = cookieStore.get(SESSION_COOKIE)?.value;
-  if (!userId) {
-    return null;
-  }
+  if (!userId) return null;
 
-  return repositories.users.findById(userId);
+  const row = await queries.findUserById(userId);
+  return row ? rowToUserView(row) : null;
 }

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { getInviteLinkAction } from "@/server/actions/invite-links";
-import { getTeamViewAction } from "@/server/actions/teams";
+import { getInviteLink } from "@/server/handlers/invite";
+import { getTeamView } from "@/server/handlers/team";
 
 type Context = {
   params: Promise<{ token: string }>;
@@ -11,11 +11,12 @@ export async function GET(
   context: Context,
 ): Promise<NextResponse> {
   const { token } = await context.params;
-  const inviteLink = await getInviteLinkAction(token);
-  if (!inviteLink) {
+  const linkResult = await getInviteLink({ token });
+  if (!linkResult.ok || !linkResult.data) {
     return NextResponse.json({ inviteLink: null }, { status: 404 });
   }
 
-  const { team } = await getTeamViewAction(inviteLink.teamId);
-  return NextResponse.json({ inviteLink, team });
+  const viewResult = await getTeamView({ teamId: linkResult.data.teamId });
+  const team = viewResult.ok ? viewResult.data.team : null;
+  return NextResponse.json({ inviteLink: linkResult.data, team });
 }

@@ -13,8 +13,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/cli
 import { Input } from "@/client/components/ui/input";
 import { Label } from "@/client/components/ui/label";
 import { Separator } from "@/client/components/ui/separator";
-import { getCurrentUser } from "@/server/actions/auth";
-import { getTeamViewAction } from "@/server/actions/teams";
+import { getTeamView } from "@/server/handlers/team";
+import { getCurrentUser } from "@/server/session";
 
 type Props = {
   params: Promise<{ teamId: string }>;
@@ -50,11 +50,11 @@ export default async function TeamDetailPage({ params, searchParams }: Props) {
     redirect("/");
   }
 
-  const { team, members, inviteLinks, matchPosts } = await getTeamViewAction(teamId);
-
-  if (!team) {
+  const result = await getTeamView({ teamId });
+  if (!result.ok) {
     notFound();
   }
+  const { team, members, inviteLinks, matchPosts } = result.data;
 
   if (team.ownerUserId !== user.id) {
     redirect("/dashboard");

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { finishDiscordLoginAction } from "@/server/actions/auth";
+import { finishDiscordLogin } from "@/server/handlers/auth";
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
   const code = request.nextUrl.searchParams.get("code");
@@ -11,11 +11,13 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   }
 
   try {
-    await finishDiscordLoginAction({ code, state });
+    const result = await finishDiscordLogin({ code, state });
+    if (!result.ok) {
+      return NextResponse.redirect(new URL(`/?error=${result.code}`, request.url));
+    }
     return NextResponse.redirect(new URL("/dashboard", request.url));
-  } catch (oauthError) {
-    const message =
-      oauthError instanceof Error ? oauthError.message : "DISCORD_LOGIN_FAILED";
+  } catch (e) {
+    const message = e instanceof Error ? e.message : "DISCORD_LOGIN_FAILED";
     return NextResponse.redirect(new URL(`/?error=${message}`, request.url));
   }
 }

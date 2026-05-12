@@ -1,5 +1,26 @@
 import 'server-only';
-import { UserSession, RsoTokenResponse, RsoUserInfo } from '@/shared/types/auth';
+
+export interface RsoTokenResponse {
+  access_token: string;
+  refresh_token: string;
+  expires_in: number;
+  token_type: string;
+  scope: string;
+}
+
+export interface RsoUserInfo {
+  sub: string;
+  game_name?: string;
+  tag_line?: string;
+}
+
+export interface UserSession {
+  puuid: string;
+  gameName: string;
+  tagLine: string;
+  accessToken: string;
+  expiresAt: number;
+}
 
 /**
  * 라이엇 인증 코드(code)를 사용하여 세션 정보를 획득합니다.

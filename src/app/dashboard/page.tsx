@@ -7,8 +7,8 @@ import { StatCard } from "@/client/components/stat-card";
 import { Badge } from "@/client/components/ui/badge";
 import { Button } from "@/client/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/client/components/ui/card";
-import { getCurrentUser } from "@/server/actions/auth";
-import { getMyTeamAction } from "@/server/actions/teams";
+import { _getMyTeam } from "@/server/handlers/team";
+import { getCurrentUser } from "@/server/session";
 
 export default async function DashboardPage() {
   const user = await getCurrentUser();
@@ -17,7 +17,8 @@ export default async function DashboardPage() {
     redirect("/");
   }
 
-  const team = await getMyTeamAction(user.id);
+  const teamResult = await _getMyTeam({}, { actor: user });
+  const team = teamResult.ok ? teamResult.data : null;
 
   return (
     <AppShell>
@@ -59,7 +60,7 @@ export default async function DashboardPage() {
           </div>
 
           <div className="grid gap-4 lg:grid-cols-3">
-            <StatCard label="Discord ID" value={user.discordUserId} hint="세션을 식별하는 기본 키" />
+            <StatCard label="User ID" value={user.id} hint="세션을 식별하는 기본 키" />
             <StatCard
               label="팀 상태"
               value={team ? "생성 완료" : "아직 없음"}
