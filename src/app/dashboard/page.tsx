@@ -56,6 +56,16 @@ export default async function DashboardPage() {
                   로그아웃
                 </Button>
               </form>
+              <form action="/api/auth/account" method="post">
+                <Button
+                  className="border-red-500/50 text-red-200 hover:bg-red-500/10"
+                  variant="outline"
+                  size="lg"
+                  type="submit"
+                >
+                  계정 삭제
+                </Button>
+              </form>
             </div>
           </div>
 

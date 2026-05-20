@@ -5,7 +5,9 @@ export type InviteErrorCode =
   | "INVITE_NOT_FOUND"
   | "INVITE_INACTIVE"
   | "INVITE_EXHAUSTED"
-  | "DISPLAY_NAME_REQUIRED";
+  | "TEAM_FULL"
+  | "DISCORD_GUILD_MEMBERSHIP_REQUIRED"
+  | "RIOT_PROFILE_REQUIRED";
 
 // POST /api/teams/:teamId/invite-links
 export interface CreateInviteLinkRequest {
@@ -31,7 +33,9 @@ export interface GetInviteLinkEndpoint {
 // POST /api/invite-links/:token/join
 export interface JoinByInviteRequest {
   token: string;
-  displayName?: string;
+  riotGameName: string;
+  riotTagLine: string;
+  soloTier: NonNullable<TeamMemberView["soloTier"]>;
 }
 export interface JoinByInviteData {
   member: TeamMemberView;

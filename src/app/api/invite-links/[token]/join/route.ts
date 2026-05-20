@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { joinByInvite } from "@/server/handlers/invite";
+import type { LolTier } from "@/shared/domain";
 
 type Context = {
   params: Promise<{ token: string }>;
@@ -11,11 +12,17 @@ export async function POST(
 ): Promise<NextResponse> {
   const { token } = await context.params;
   const formData = await request.formData();
-  const displayName =
-    String(formData.get("displayName") ?? "").trim() || undefined;
+  const riotGameName = String(formData.get("riotGameName") ?? "").trim();
+  const riotTagLine = String(formData.get("riotTagLine") ?? "").trim();
+  const soloTier = String(formData.get("soloTier") ?? "").trim();
 
   try {
-    const result = await joinByInvite({ token, displayName });
+    const result = await joinByInvite({
+      token,
+      riotGameName,
+      riotTagLine,
+      soloTier: soloTier as LolTier,
+    });
     if (!result.ok) {
       return NextResponse.redirect(
         new URL(`/join/${token}?error=${result.code}`, request.url),

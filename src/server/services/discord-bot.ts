@@ -79,3 +79,26 @@ export async function isDiscordGuildMember(userId: string): Promise<boolean> {
   const member = await fetchDiscordGuildMember(userId);
   return member !== null;
 }
+
+export async function sendMatchConfirmedNotification(
+  matchId: string,
+): Promise<void> {
+  const channelId = process.env.DISCORD_MATCH_CHANNEL_ID;
+  if (!channelId) return;
+
+  const { botToken } = getDiscordBotConfig();
+  const response = await fetch(`${DISCORD_API_BASE}/channels/${channelId}/messages`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bot ${botToken}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      content: `Match confirmed: ${matchId}`,
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error("DISCORD_MATCH_NOTIFICATION_FAILED");
+  }
+}

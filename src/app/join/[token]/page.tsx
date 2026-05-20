@@ -13,16 +13,61 @@ import { isSupabaseConfigured } from "@/server/db/client";
 import { getInviteLink } from "@/server/handlers/invite";
 import { getTeamView } from "@/server/handlers/team";
 import { getCurrentUser } from "@/server/session";
+import type { LolTier } from "@/shared/domain";
 
 type Props = {
   params: Promise<{ token: string }>;
   searchParams: Promise<{ joined?: string; error?: string; teamId?: string }>;
 };
 
+const soloTiers: LolTier[] = [
+  "IRON",
+  "BRONZE",
+  "SILVER",
+  "GOLD",
+  "PLATINUM",
+  "EMERALD",
+  "DIAMOND",
+  "MASTER",
+  "GRANDMASTER",
+  "CHALLENGER",
+];
+
 export default async function JoinTeamPage({ params, searchParams }: Props) {
   const { token } = await params;
   const query = await searchParams;
   const sessionUser = await getCurrentUser();
+
+  if (!sessionUser) {
+    return (
+      <AppShell>
+        <Card>
+          <CardContent className="space-y-6 px-6 py-8 lg:px-10">
+            <SectionHeader
+              eyebrow="Join Team"
+              title="Discord 로그인이 필요합니다"
+              description="초대 링크로 팀에 합류하려면 먼저 Discord 계정으로 로그인해 팀 멤버십을 검증해야 합니다."
+            />
+            <div className="grid gap-3">
+              <StatusAlert
+                title="세션 없음"
+                description="로그인 후 같은 초대 링크로 돌아와 팀 합류를 계속 진행하세요."
+              />
+              <StatCard label="초대 토큰" value={<code className="break-all text-sm">{token}</code>} />
+            </div>
+            <div className="flex flex-wrap gap-3">
+              <Button asChild size="lg">
+                <a href="/api/auth/discord/login">디스코드 로그인 시작</a>
+              </Button>
+              <Button asChild variant="outline">
+                <Link href="/">홈으로 돌아가기</Link>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </AppShell>
+    );
+  }
 
   const linkResult = await getInviteLink({ token });
   if (!linkResult.ok || !linkResult.data) {
@@ -43,7 +88,7 @@ export default async function JoinTeamPage({ params, searchParams }: Props) {
           <SectionHeader
             eyebrow="Join Team"
             title={team.name}
-            description="초대 링크를 받은 사용자가 팀에 합류하는 화면입니다. 현재는 기본 정보만 입력해 멤버 등록과 저장 흐름을 검증합니다."
+            description="초대 링크를 받은 사용자가 Discord 로그인 후 Riot 자기 신고 정보를 제출해 팀에 합류하는 화면입니다."
           />
           <div className="grid gap-3">
             {sessionUser?.id === team.ownerUserId ? (
@@ -102,22 +147,51 @@ export default async function JoinTeamPage({ params, searchParams }: Props) {
 
         <Card>
           <CardHeader>
-            <CardTitle>멤버 등록 테스트</CardTitle>
+            <CardTitle>Riot 프로필 신고</CardTitle>
             <CardDescription>
-              RSO는 나중에 붙일 예정이라 지금은 표시 이름만 입력합니다. 중요한 것은 팀 멤버와 초대 링크
-              사용량이 저장되는지입니다.
+              게임명, 태그라인, 솔로 랭크 티어를 입력해야 팀 멤버로 등록할 수 있습니다.
             </CardDescription>
           </CardHeader>
           <CardContent>
             <form action={`/api/invite-links/${token}/join`} method="post" className="grid gap-5">
+              <div className="grid gap-5 md:grid-cols-2">
+                <div className="grid gap-2">
+                  <Label htmlFor="riotGameName">Riot 게임명</Label>
+                  <Input
+                    id="riotGameName"
+                    name="riotGameName"
+                    placeholder="Hide on bush"
+                    required
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="riotTagLine">태그라인</Label>
+                  <Input
+                    id="riotTagLine"
+                    name="riotTagLine"
+                    placeholder="KR1"
+                    required
+                  />
+                </div>
+              </div>
               <div className="grid gap-2">
-                <Label htmlFor="displayName">표시 이름</Label>
-                <Input
-                  id="displayName"
-                  name="displayName"
-                  placeholder="Midnight Top"
-                  required={!sessionUser}
-                />
+                <Label htmlFor="soloTier">솔로 랭크 티어</Label>
+                <select
+                  id="soloTier"
+                  name="soloTier"
+                  defaultValue=""
+                  required
+                  className="h-12 rounded-2xl border border-input/90 bg-background/50 px-4 py-3 text-sm text-foreground outline-none transition-[border-color,box-shadow,background-color] focus-visible:border-primary/70 focus-visible:ring-4 focus-visible:ring-ring/20"
+                >
+                  <option value="" disabled>
+                    티어 선택
+                  </option>
+                  {soloTiers.map((tier) => (
+                    <option key={tier} value={tier}>
+                      {tier}
+                    </option>
+                  ))}
+                </select>
               </div>
               <div className="flex flex-wrap gap-3 pt-2">
                 <Button type="submit">팀 합류</Button>

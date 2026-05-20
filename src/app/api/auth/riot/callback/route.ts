@@ -3,6 +3,8 @@ import { joinByInvite } from "@/server/handlers/invite";
 import { getCurrentUser } from "@/server/session";
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
+  // Temporary route until Riot RSO is available for v1. The callback reuses
+  // the invite join flow with the current Discord session username.
   const sessionUser = await getCurrentUser();
   const token = request.nextUrl.searchParams.get("token");
 
@@ -15,7 +17,9 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   try {
     const result = await joinByInvite({
       token,
-      displayName: sessionUser?.username,
+      riotGameName: sessionUser?.username ?? "",
+      riotTagLine: "RSO",
+      soloTier: "GOLD",
     });
     if (!result.ok) {
       return NextResponse.redirect(

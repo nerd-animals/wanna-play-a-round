@@ -220,6 +220,12 @@ export default async function TeamDetailPage({ params, searchParams }: Props) {
                   <p className="text-sm text-muted-foreground">
                     {member.role === "OWNER" ? "팀장" : "팀원"} / {member.status}
                   </p>
+                  {member.riotGameName && member.riotTagLine ? (
+                    <p className="text-sm text-muted-foreground">
+                      Riot {member.riotGameName}#{member.riotTagLine}
+                      {member.soloTier ? ` / ${member.soloTier}` : ""}
+                    </p>
+                  ) : null}
                 </div>
                 <div className="flex flex-wrap gap-2">
                   <Badge variant={statusVariant(member.role)}>{member.role}</Badge>

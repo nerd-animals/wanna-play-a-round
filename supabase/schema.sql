@@ -19,8 +19,11 @@ create table if not exists teams (
 create table if not exists team_members (
   id text primary key,
   team_id text not null references teams(id) on delete cascade,
-  user_id text references users(id) on delete set null,
+  user_id text references users(id) on delete cascade,
   display_name text,
+  riot_game_name text,
+  riot_tag_line text,
+  solo_tier text check (solo_tier in ('IRON', 'BRONZE', 'SILVER', 'GOLD', 'PLATINUM', 'EMERALD', 'DIAMOND', 'MASTER', 'GRANDMASTER', 'CHALLENGER')),
   role text not null check (role in ('OWNER', 'MEMBER')),
   status text not null check (status in ('PENDING', 'ACTIVE', 'REMOVED')),
   created_at timestamptz not null default now(),
@@ -53,3 +56,33 @@ create table if not exists match_posts (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+create table if not exists matches (
+  id text primary key,
+  left_post_id text not null references match_posts(id) on delete cascade,
+  right_post_id text not null references match_posts(id) on delete cascade,
+  left_team_id text not null references teams(id) on delete cascade,
+  right_team_id text not null references teams(id) on delete cascade,
+  origin text not null check (origin in ('MANUAL', 'AUTO')),
+  confirmed_at timestamptz not null default now()
+);
+
+create table if not exists match_proposals (
+  id text primary key,
+  post_id text not null references match_posts(id) on delete cascade,
+  applicant_team_id text not null references teams(id) on delete cascade,
+  status text not null check (status in ('PENDING', 'ACCEPTED', 'REJECTED', 'WITHDRAWN')),
+  created_by_user_id text not null references users(id) on delete cascade,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique (post_id, applicant_team_id)
+);
+
+create or replace function increment_invite_link_used_count(link_id text)
+returns void
+language sql
+as $$
+  update team_invite_links
+  set used_count = used_count + 1
+  where id = link_id;
+$$;

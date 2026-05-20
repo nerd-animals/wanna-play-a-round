@@ -1,6 +1,7 @@
 import type { TeamErrorCode } from "./contracts/team";
 import type { InviteErrorCode } from "./contracts/invite";
 import type { MatchErrorCode } from "./contracts/match";
+import type { MatchProposalErrorCode } from "./contracts/match-proposals";
 import type { AuthErrorCode } from "./contracts/auth";
 
 export type CommonErrorCode = "UNAUTHORIZED" | "FORBIDDEN" | "INTERNAL_ERROR";
@@ -10,6 +11,7 @@ export type ActionErrorCode =
   | TeamErrorCode
   | InviteErrorCode
   | MatchErrorCode
+  | MatchProposalErrorCode
   | AuthErrorCode;
 
 export type ActionResult<T> =
@@ -25,9 +27,18 @@ export interface Endpoint {
 
 export function statusFromError(code: ActionErrorCode): number {
   if (code === "UNAUTHORIZED") return 401;
-  if (code === "FORBIDDEN" || code.endsWith("_MEMBER_REQUIRED")) return 403;
+  if (
+    code === "FORBIDDEN" ||
+    code === "DISCORD_GUILD_MEMBERSHIP_REQUIRED" ||
+    code.endsWith("_MEMBER_REQUIRED")
+  ) return 403;
   if (code.endsWith("_NOT_FOUND")) return 404;
-  if (code.endsWith("_ALREADY_EXISTS")) return 409;
+  if (
+    code === "TEAM_FULL" ||
+    code === "PROPOSAL_NOT_PENDING" ||
+    code === "MATCH_POST_ALREADY_CLOSED" ||
+    code.endsWith("_ALREADY_EXISTS")
+  ) return 409;
   if (code === "INTERNAL_ERROR") return 500;
   return 422;
 }

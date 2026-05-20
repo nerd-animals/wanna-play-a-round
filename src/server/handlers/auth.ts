@@ -1,4 +1,5 @@
 import "server-only";
+import { withSession } from "@/server/authz";
 import { queries, type Queries } from "@/server/db/queries";
 import { rowToUserView } from "@/server/db/mappers";
 import { createId } from "@/server/lib/id";
@@ -18,7 +19,10 @@ import {
 } from "@/server/services/discord-oauth";
 import type { ActionResult } from "@/shared/api";
 import type { UserView } from "@/shared/domain";
-import type { CurrentUserEndpoint } from "@/shared/contracts/auth";
+import type {
+  CurrentUserEndpoint,
+  DeleteAccountEndpoint,
+} from "@/shared/contracts/auth";
 
 export async function currentUser(): Promise<CurrentUserEndpoint["response"]> {
   const user = await getCurrentUser();
@@ -72,3 +76,16 @@ export async function logout(): Promise<ActionResult<null>> {
   await clearSession();
   return { ok: true, data: null };
 }
+
+export const _deleteAccount = async (
+  _req: Record<string, never>,
+  ctx: { actor: UserView },
+  db: Queries = queries,
+): Promise<DeleteAccountEndpoint["response"]> => {
+  await db.deleteTeamMembersByUserId(ctx.actor.id);
+  await db.deleteUser(ctx.actor.id);
+  await clearSession();
+  return { ok: true, data: null };
+};
+
+export const deleteAccount = withSession(_deleteAccount);
