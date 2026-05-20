@@ -12,3 +12,11 @@ export interface CurrentUserEndpoint {
   request: Record<string, never>;
   response: ActionResult<UserView | null>;
 }
+
+// DELETE /api/auth/account
+export interface DeleteAccountEndpoint {
+  method: "DELETE";
+  path: "/api/auth/account";
+  request: Record<string, never>;
+  response: ActionResult<null>;
+}

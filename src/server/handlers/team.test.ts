@@ -2,9 +2,13 @@ import { describe, it, expect } from "vitest";
 import { _createTeam, _getMyTeams } from "./team";
 import type { Queries } from "@/server/db/queries";
 import type { SessionUser } from "@/server/session";
-import type { TeamMemberRow, TeamRow } from "@/server/db/rows";
+import type { TeamRow } from "@/server/db/rows";
 
-const actor: SessionUser = { id: "user-1", username: "tester" };
+const actor: SessionUser = {
+  id: "user-1",
+  discordUserId: "discord-1",
+  username: "tester",
+};
 
 function makeTeamRow(over: Partial<TeamRow> = {}): TeamRow {
   return {
@@ -26,16 +30,11 @@ describe("_createTeam", () => {
     expect(res).toEqual({ ok: false, code: "TEAM_NAME_REQUIRED" });
   });
 
-  it("allows a second team for the same owner (no TEAM_ALREADY_EXISTS guard)", async () => {
+  it("allows a second team for the same owner without creating owner members", async () => {
     const teamInserts: TeamRow[] = [];
-    const memberInserts: TeamMemberRow[] = [];
     const db = {
       insertTeam: async (row: TeamRow) => {
         teamInserts.push(row);
-        return row;
-      },
-      insertTeamMember: async (row: TeamMemberRow) => {
-        memberInserts.push(row);
         return row;
       },
     } as unknown as Queries;
@@ -46,30 +45,6 @@ describe("_createTeam", () => {
     expect(first.ok).toBe(true);
     expect(second.ok).toBe(true);
     expect(teamInserts.map((t) => t.name)).toEqual(["Alpha", "Beta"]);
-    expect(memberInserts).toHaveLength(2);
-    expect(memberInserts.every((m) => m.role === "OWNER")).toBe(true);
-  });
-
-  it("rolls back team insert when owner member insert fails", async () => {
-    const teamInserts: TeamRow[] = [];
-    const teamDeletes: string[] = [];
-    const db = {
-      insertTeam: async (row: TeamRow) => {
-        teamInserts.push(row);
-        return row;
-      },
-      insertTeamMember: async () => {
-        throw new Error("BOOM");
-      },
-      deleteTeam: async (id: string) => {
-        teamDeletes.push(id);
-      },
-    } as unknown as Queries;
-
-    await expect(
-      _createTeam({ name: "Alpha" }, { actor }, db),
-    ).rejects.toThrow("BOOM");
-    expect(teamDeletes).toEqual([teamInserts[0].id]);
   });
 });
 

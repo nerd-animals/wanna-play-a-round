@@ -8,7 +8,11 @@ import type {
   TeamRow,
 } from "@/server/db/rows";
 
-const actor: SessionUser = { id: "owner-1", username: "owner" };
+const actor: SessionUser = {
+  id: "owner-1",
+  discordUserId: "discord-owner-1",
+  username: "owner",
+};
 
 const team: TeamRow = {
   id: "team-1",
@@ -28,6 +32,9 @@ function makeMember(over: Partial<TeamMemberRow> = {}): TeamMemberRow {
     team_id: team.id,
     user_id: "user-x",
     display_name: "name",
+    riot_game_name: "name",
+    riot_tag_line: "KR1",
+    solo_tier: "GOLD",
     role: "MEMBER",
     status: "ACTIVE",
     created_at: "2026-05-20T00:00:00.000Z",

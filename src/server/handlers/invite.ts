@@ -1,9 +1,10 @@
 import "server-only";
-import { withTeamOwner } from "@/server/authz";
+import { withSession, withTeamOwner } from "@/server/authz";
 import { queries, type Queries } from "@/server/db/queries";
 import { rowToTeamInviteLinkView, rowToTeamMemberView } from "@/server/db/mappers";
 import { createId, createToken } from "@/server/lib/id";
-import { getCurrentUser, type SessionUser } from "@/server/session";
+import { isDiscordGuildMember } from "@/server/services/discord-bot";
+import type { SessionUser } from "@/server/session";
 import type { TeamRow } from "@/server/db/rows";
 import type {
   CreateInviteLinkEndpoint,
@@ -12,9 +13,49 @@ import type {
   JoinByInviteEndpoint,
   JoinByInviteRequest,
 } from "@/shared/contracts/invite";
+import type { LolTier } from "@/shared/domain";
 
 function isInviteExpired(expiresAt: string | null): boolean {
   return Boolean(expiresAt && new Date(expiresAt).getTime() < Date.now());
+}
+
+const TEAM_ROSTER_SIZE = 5;
+const LOL_TIERS: LolTier[] = [
+  "IRON",
+  "BRONZE",
+  "SILVER",
+  "GOLD",
+  "PLATINUM",
+  "EMERALD",
+  "DIAMOND",
+  "MASTER",
+  "GRANDMASTER",
+  "CHALLENGER",
+];
+
+type DiscordMembershipService = {
+  isDiscordGuildMember(userId: string): Promise<boolean>;
+};
+
+const defaultDiscordMembershipService: DiscordMembershipService = {
+  isDiscordGuildMember,
+};
+
+function normalizeRiotProfile(req: JoinByInviteRequest): {
+  riotGameName: string;
+  riotTagLine: string;
+  soloTier: LolTier;
+} | null {
+  const riotGameName = req.riotGameName?.trim();
+  const riotTagLine = req.riotTagLine?.trim();
+  if (!riotGameName || !riotTagLine || !LOL_TIERS.includes(req.soloTier)) {
+    return null;
+  }
+  return {
+    riotGameName,
+    riotTagLine,
+    soloTier: req.soloTier,
+  };
 }
 
 export const _createInviteLink = async (
@@ -46,9 +87,11 @@ export async function getInviteLink(
   return { ok: true, data: link ? rowToTeamInviteLinkView(link) : null };
 }
 
-export async function joinByInvite(
+export async function _joinByInvite(
   req: JoinByInviteRequest,
+  ctx: { actor: SessionUser },
   db: Queries = queries,
+  discord: DiscordMembershipService = defaultDiscordMembershipService,
 ): Promise<JoinByInviteEndpoint["response"]> {
   const link = await db.findInviteLinkByToken(req.token);
   if (!link) return { ok: false, code: "INVITE_NOT_FOUND" };
@@ -60,28 +103,26 @@ export async function joinByInvite(
   const team = await db.findTeamById(link.team_id);
   if (!team) return { ok: false, code: "TEAM_NOT_FOUND" };
 
-  const trimmedDisplayName = req.displayName?.trim();
-  const actor = await getCurrentUser();
-  if (!actor && !trimmedDisplayName)
-    return { ok: false, code: "DISPLAY_NAME_REQUIRED" };
+  const isGuildMember = await discord.isDiscordGuildMember(ctx.actor.discordUserId);
+  if (!isGuildMember)
+    return { ok: false, code: "DISCORD_GUILD_MEMBERSHIP_REQUIRED" };
 
-  let member = actor
-    ? await db.findTeamMemberByUserId(team.id, actor.id)
-    : null;
+  const riotProfile = normalizeRiotProfile(req);
+  if (!riotProfile) return { ok: false, code: "RIOT_PROFILE_REQUIRED" };
 
-  if (!member && trimmedDisplayName) {
-    member = await db.findTeamMemberByDisplayName(team.id, trimmedDisplayName);
-  }
+  let member = await db.findTeamMemberByUserId(team.id, ctx.actor.id);
 
   const joinedAt = new Date().toISOString();
+  const displayName = `${riotProfile.riotGameName}#${riotProfile.riotTagLine}`;
 
   if (member?.status === "ACTIVE") {
-    if (trimmedDisplayName && member.display_name !== trimmedDisplayName) {
-      member = await db.updateTeamMember({
-        ...member,
-        display_name: trimmedDisplayName,
-      });
-    }
+    member = await db.updateTeamMember({
+      ...member,
+      display_name: displayName,
+      riot_game_name: riotProfile.riotGameName,
+      riot_tag_line: riotProfile.riotTagLine,
+      solo_tier: riotProfile.soloTier,
+    });
     return {
       ok: true,
       data: {
@@ -92,19 +133,29 @@ export async function joinByInvite(
     };
   }
 
+  const members = await db.listTeamMembers(team.id);
+  const activeCount = members.filter((m) => m.status === "ACTIVE").length;
+  if (activeCount >= TEAM_ROSTER_SIZE) return { ok: false, code: "TEAM_FULL" };
+
   if (member) {
     member = await db.updateTeamMember({
       ...member,
       status: "ACTIVE",
-      display_name: trimmedDisplayName ?? member.display_name,
+      display_name: displayName,
+      riot_game_name: riotProfile.riotGameName,
+      riot_tag_line: riotProfile.riotTagLine,
+      solo_tier: riotProfile.soloTier,
       joined_at: joinedAt,
     });
   } else {
     member = await db.insertTeamMember({
       id: createId(),
       team_id: team.id,
-      user_id: actor?.id ?? null,
-      display_name: trimmedDisplayName ?? null,
+      user_id: ctx.actor.id,
+      display_name: displayName,
+      riot_game_name: riotProfile.riotGameName,
+      riot_tag_line: riotProfile.riotTagLine,
+      solo_tier: riotProfile.soloTier,
       role: "MEMBER",
       status: "ACTIVE",
       created_at: joinedAt,
@@ -112,7 +163,7 @@ export async function joinByInvite(
     });
   }
 
-  await db.updateInviteLink({ ...link, used_count: link.used_count + 1 });
+  await db.incrementInviteLinkUsedCount(link.id);
 
   return {
     ok: true,
@@ -123,3 +174,5 @@ export async function joinByInvite(
     },
   };
 }
+
+export const joinByInvite = withSession(_joinByInvite);

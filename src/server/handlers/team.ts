@@ -36,22 +36,6 @@ export const _createTeam = async (
     updated_at: now,
   });
 
-  try {
-    await db.insertTeamMember({
-      id: createId(),
-      team_id: teamRow.id,
-      user_id: ctx.actor.id,
-      display_name: ctx.actor.username,
-      role: "OWNER",
-      status: "ACTIVE",
-      created_at: now,
-      joined_at: now,
-    });
-  } catch (error) {
-    await db.deleteTeam(teamRow.id);
-    throw error;
-  }
-
   return { ok: true, data: rowToTeamView(teamRow) };
 };
 

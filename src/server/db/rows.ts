@@ -2,7 +2,9 @@ import "server-only";
 import type {
   InviteLinkStatus,
   LolTier,
+  MatchOrigin,
   MatchPostStatus,
+  MatchProposalStatus,
   TeamMemberRole,
   TeamMemberStatus,
 } from "@/shared/domain";
@@ -30,6 +32,9 @@ export interface TeamMemberRow {
   team_id: string;
   user_id: string | null;
   display_name: string | null;
+  riot_game_name: string | null;
+  riot_tag_line: string | null;
+  solo_tier: LolTier | null;
   role: TeamMemberRole;
   status: TeamMemberStatus;
   created_at: string;
@@ -57,6 +62,26 @@ export interface MatchPostRow {
   max_tier: LolTier | null;
   available_time: string | null;
   status: MatchPostStatus;
+  created_by_user_id: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface MatchRow {
+  id: string;
+  left_post_id: string;
+  right_post_id: string;
+  left_team_id: string;
+  right_team_id: string;
+  origin: MatchOrigin;
+  confirmed_at: string;
+}
+
+export interface MatchProposalRow {
+  id: string;
+  post_id: string;
+  applicant_team_id: string;
+  status: MatchProposalStatus;
   created_by_user_id: string;
   created_at: string;
   updated_at: string;

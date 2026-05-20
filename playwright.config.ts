@@ -20,6 +20,11 @@ export default defineConfig({
   webServer: {
     command: 'npm run dev',
     url: 'http://localhost:3000',
+    env: {
+      DISCORD_CLIENT_ID: 'playwright-client-id',
+      DISCORD_CLIENT_SECRET: 'playwright-client-secret',
+      DISCORD_REDIRECT_URI: 'http://localhost:3000/api/auth/discord/callback',
+    },
     reuseExistingServer: !process.env.CI,
   },
 });

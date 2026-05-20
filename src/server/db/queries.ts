@@ -2,7 +2,9 @@ import "server-only";
 import { getSupabaseAdminClient } from "./client";
 import type {
   InviteLinkRow,
+  MatchProposalRow,
   MatchPostRow,
+  MatchRow,
   TeamMemberRow,
   TeamRow,
   UserRow,
@@ -16,6 +18,42 @@ function unwrap<T>(
   if (error) throw new Error(`${context}:${error.message}`);
   if (!data) throw new Error(`${context}:EMPTY`);
   return data;
+}
+
+function isPastAvailableTime(value: string | null): boolean {
+  if (!value) return false;
+  const time = new Date(value).getTime();
+  return Number.isFinite(time) && time < Date.now();
+}
+
+async function closeExpiredOpenMatchPosts(
+  rows: MatchPostRow[],
+): Promise<MatchPostRow[]> {
+  const expiredRows = rows.filter(
+    (row) => row.status === "OPEN" && isPastAvailableTime(row.available_time),
+  );
+  if (expiredRows.length === 0) return rows;
+
+  const client = getSupabaseAdminClient();
+  const updatedAt = new Date().toISOString();
+  await Promise.all(
+    expiredRows.map(async (row) => {
+      const { error } = await client
+        .from("match_posts")
+        .update({ status: "CLOSED", updated_at: updatedAt })
+        .eq("id", row.id)
+        .eq("status", "OPEN");
+      if (error)
+        throw new Error(`MATCH_POSTS_LAZY_CLOSE_FAILED:${error.message}`);
+    }),
+  );
+
+  const expiredIds = new Set(expiredRows.map((row) => row.id));
+  return rows.map((row) =>
+    expiredIds.has(row.id)
+      ? { ...row, status: "CLOSED", updated_at: updatedAt }
+      : row,
+  );
 }
 
 export const queries = {
@@ -50,6 +88,12 @@ export const queries = {
       .maybeSingle<UserRow>();
     if (error) throw new Error(`USERS_FIND_BY_DISCORD_ID_FAILED:${error.message}`);
     return data;
+  },
+
+  async deleteUser(id: string): Promise<void> {
+    const client = getSupabaseAdminClient();
+    const { error } = await client.from("users").delete().eq("id", id);
+    if (error) throw new Error(`USERS_DELETE_FAILED:${error.message}`);
   },
 
   // Teams
@@ -110,6 +154,9 @@ export const queries = {
       .update({
         user_id: row.user_id,
         display_name: row.display_name,
+        riot_game_name: row.riot_game_name,
+        riot_tag_line: row.riot_tag_line,
+        solo_tier: row.solo_tier,
         role: row.role,
         status: row.status,
         joined_at: row.joined_at,
@@ -162,6 +209,16 @@ export const queries = {
     return data;
   },
 
+  async deleteTeamMembersByUserId(userId: string): Promise<void> {
+    const client = getSupabaseAdminClient();
+    const { error } = await client
+      .from("team_members")
+      .delete()
+      .eq("user_id", userId);
+    if (error)
+      throw new Error(`TEAM_MEMBERS_DELETE_BY_USER_FAILED:${error.message}`);
+  },
+
   // InviteLinks
   async insertInviteLink(row: InviteLinkRow): Promise<InviteLinkRow> {
     const client = getSupabaseAdminClient();
@@ -187,6 +244,15 @@ export const queries = {
       .select()
       .single<InviteLinkRow>();
     return unwrap(data, error, "INVITE_LINKS_UPDATE_FAILED");
+  },
+
+  async incrementInviteLinkUsedCount(id: string): Promise<void> {
+    const client = getSupabaseAdminClient();
+    const { error } = await client.rpc("increment_invite_link_used_count", {
+      link_id: id,
+    });
+    if (error)
+      throw new Error(`INVITE_LINKS_INCREMENT_USED_COUNT_FAILED:${error.message}`);
   },
 
   async findInviteLinkByToken(token: string): Promise<InviteLinkRow | null> {
@@ -230,7 +296,18 @@ export const queries = {
       .eq("team_id", teamId)
       .returns<MatchPostRow[]>();
     if (error) throw new Error(`MATCH_POSTS_LIST_FAILED:${error.message}`);
-    return data ?? [];
+    return closeExpiredOpenMatchPosts(data ?? []);
+  },
+
+  async findMatchPostById(id: string): Promise<MatchPostRow | null> {
+    const client = getSupabaseAdminClient();
+    const { data, error } = await client
+      .from("match_posts")
+      .select("*")
+      .eq("id", id)
+      .maybeSingle<MatchPostRow>();
+    if (error) throw new Error(`MATCH_POSTS_FIND_BY_ID_FAILED:${error.message}`);
+    return data;
   },
 
   async findOpenMatchPost(teamId: string): Promise<MatchPostRow | null> {
@@ -242,7 +319,100 @@ export const queries = {
       .eq("status", "OPEN")
       .maybeSingle<MatchPostRow>();
     if (error) throw new Error(`MATCH_POSTS_FIND_OPEN_FAILED:${error.message}`);
+    const [row] = await closeExpiredOpenMatchPosts(data ? [data] : []);
+    return row?.status === "OPEN" ? row : null;
+  },
+
+  async listOpenMatchPosts(): Promise<MatchPostRow[]> {
+    const client = getSupabaseAdminClient();
+    const { data, error } = await client
+      .from("match_posts")
+      .select("*")
+      .eq("status", "OPEN")
+      .returns<MatchPostRow[]>();
+    if (error) throw new Error(`MATCH_POSTS_LIST_OPEN_FAILED:${error.message}`);
+    const rows = await closeExpiredOpenMatchPosts(data ?? []);
+    return rows.filter((row) => row.status === "OPEN");
+  },
+
+  async closeMatchPostIfOpen(id: string): Promise<MatchPostRow | null> {
+    const client = getSupabaseAdminClient();
+    const { data, error } = await client
+      .from("match_posts")
+      .update({
+        status: "CLOSED",
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", id)
+      .eq("status", "OPEN")
+      .select()
+      .maybeSingle<MatchPostRow>();
+    if (error)
+      throw new Error(`MATCH_POSTS_CLOSE_IF_OPEN_FAILED:${error.message}`);
     return data;
+  },
+
+  // MatchProposals
+  async insertMatchProposal(row: MatchProposalRow): Promise<MatchProposalRow> {
+    const client = getSupabaseAdminClient();
+    const { data, error } = await client
+      .from("match_proposals")
+      .insert(row)
+      .select()
+      .single<MatchProposalRow>();
+    return unwrap(data, error, "MATCH_PROPOSALS_INSERT_FAILED");
+  },
+
+  async findMatchProposalById(id: string): Promise<MatchProposalRow | null> {
+    const client = getSupabaseAdminClient();
+    const { data, error } = await client
+      .from("match_proposals")
+      .select("*")
+      .eq("id", id)
+      .maybeSingle<MatchProposalRow>();
+    if (error)
+      throw new Error(`MATCH_PROPOSALS_FIND_BY_ID_FAILED:${error.message}`);
+    return data;
+  },
+
+  async listMatchProposals(filter: {
+    postId?: string;
+    teamId?: string;
+  }): Promise<MatchProposalRow[]> {
+    const client = getSupabaseAdminClient();
+    let query = client.from("match_proposals").select("*");
+    if (filter.postId) query = query.eq("post_id", filter.postId);
+    if (filter.teamId) query = query.eq("applicant_team_id", filter.teamId);
+    const { data, error } = await query
+      .order("created_at", { ascending: false })
+      .returns<MatchProposalRow[]>();
+    if (error) throw new Error(`MATCH_PROPOSALS_LIST_FAILED:${error.message}`);
+    return data ?? [];
+  },
+
+  async updateMatchProposalStatus(
+    id: string,
+    status: MatchProposalRow["status"],
+  ): Promise<MatchProposalRow> {
+    const client = getSupabaseAdminClient();
+    const { data, error } = await client
+      .from("match_proposals")
+      .update({ status, updated_at: new Date().toISOString() })
+      .eq("id", id)
+      .select()
+      .single<MatchProposalRow>();
+    return unwrap(data, error, "MATCH_PROPOSALS_UPDATE_STATUS_FAILED");
+  },
+
+  // Matches
+  async insertMatch(row: MatchRow): Promise<MatchRow> {
+    const client = getSupabaseAdminClient();
+    const { data, error } = await client
+      .from("matches")
+      .insert(row)
+      .select()
+      .single<MatchRow>();
+    return unwrap(data, error, "MATCHES_INSERT_FAILED");
   },
 };
 
