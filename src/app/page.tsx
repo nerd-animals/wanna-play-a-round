@@ -9,7 +9,7 @@ import { Badge } from "@/client/components/ui/badge";
 import { Button } from "@/client/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/client/components/ui/card";
 import { Separator } from "@/client/components/ui/separator";
-import { _getMyTeam } from "@/server/handlers/team";
+import { _getMyTeams } from "@/server/handlers/team";
 import { getCurrentUser } from "@/server/session";
 
 type Props = {
@@ -38,8 +38,8 @@ const quickFlow = [
 export default async function Home({ searchParams }: Props) {
   const user = await getCurrentUser();
   const query = await searchParams;
-  const teamResult = user ? await _getMyTeam({}, { actor: user }) : null;
-  const team = teamResult?.ok ? teamResult.data : null;
+  const teamsResult = user ? await _getMyTeams({}, { actor: user }) : null;
+  const team = teamsResult?.ok ? (teamsResult.data[0] ?? null) : null;
 
   return (
     <AppShell>

@@ -7,7 +7,7 @@ import { StatCard } from "@/client/components/stat-card";
 import { Badge } from "@/client/components/ui/badge";
 import { Button } from "@/client/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/client/components/ui/card";
-import { _getMyTeam } from "@/server/handlers/team";
+import { _getMyTeams } from "@/server/handlers/team";
 import { getCurrentUser } from "@/server/session";
 
 export default async function DashboardPage() {
@@ -17,8 +17,8 @@ export default async function DashboardPage() {
     redirect("/");
   }
 
-  const teamResult = await _getMyTeam({}, { actor: user });
-  const team = teamResult.ok ? teamResult.data : null;
+  const teamsResult = await _getMyTeams({}, { actor: user });
+  const team = teamsResult.ok ? (teamsResult.data[0] ?? null) : null;
 
   return (
     <AppShell>

@@ -6,10 +6,7 @@ import type {
   TeamView,
 } from "../domain";
 
-export type TeamErrorCode =
-  | "TEAM_NAME_REQUIRED"
-  | "TEAM_ALREADY_EXISTS"
-  | "TEAM_NOT_FOUND";
+export type TeamErrorCode = "TEAM_NAME_REQUIRED" | "TEAM_NOT_FOUND";
 
 // POST /api/teams
 export interface CreateTeamRequest {
@@ -39,9 +36,9 @@ export interface GetTeamViewEndpoint {
 }
 
 // GET /api/teams/my
-export interface GetMyTeamEndpoint {
+export interface GetMyTeamsEndpoint {
   method: "GET";
   path: "/api/teams/my";
   request: Record<string, never>;
-  response: ActionResult<TeamView | null>;
+  response: ActionResult<TeamView[]>;
 }

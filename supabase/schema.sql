@@ -13,8 +13,7 @@ create table if not exists teams (
   description text,
   activity_time text,
   created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now(),
-  unique (owner_user_id)
+  updated_at timestamptz not null default now()
 );
 
 create table if not exists team_members (

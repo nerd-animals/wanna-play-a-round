@@ -80,15 +80,16 @@ export const queries = {
     return data;
   },
 
-  async findTeamByOwnerId(ownerUserId: string): Promise<TeamRow | null> {
+  async listTeamsByOwnerId(ownerUserId: string): Promise<TeamRow[]> {
     const client = getSupabaseAdminClient();
     const { data, error } = await client
       .from("teams")
       .select("*")
       .eq("owner_user_id", ownerUserId)
-      .maybeSingle<TeamRow>();
-    if (error) throw new Error(`TEAMS_FIND_BY_OWNER_FAILED:${error.message}`);
-    return data;
+      .order("created_at", { ascending: false })
+      .returns<TeamRow[]>();
+    if (error) throw new Error(`TEAMS_LIST_BY_OWNER_FAILED:${error.message}`);
+    return data ?? [];
   },
 
   // TeamMembers

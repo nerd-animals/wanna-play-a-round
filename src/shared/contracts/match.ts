@@ -4,8 +4,7 @@ import type { LolTier, MatchPostView } from "../domain";
 export type MatchErrorCode =
   | "TITLE_REQUIRED"
   | "OPEN_MATCH_ALREADY_EXISTS"
-  | "OWNER_MEMBER_REQUIRED"
-  | "ACTIVE_MEMBER_REQUIRED";
+  | "TEAM_NOT_COMPLETE";
 
 // POST /api/teams/:teamId/matches
 export interface RegisterMatchPostRequest {
