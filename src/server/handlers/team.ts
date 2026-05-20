@@ -12,7 +12,7 @@ import type { SessionUser } from "@/server/session";
 import type {
   CreateTeamEndpoint,
   CreateTeamRequest,
-  GetMyTeamEndpoint,
+  GetMyTeamsEndpoint,
   GetTeamViewData,
   GetTeamViewEndpoint,
 } from "@/shared/contracts/team";
@@ -24,9 +24,6 @@ export const _createTeam = async (
 ): Promise<CreateTeamEndpoint["response"]> => {
   const name = req.name?.trim();
   if (!name) return { ok: false, code: "TEAM_NAME_REQUIRED" };
-
-  const existing = await db.findTeamByOwnerId(ctx.actor.id);
-  if (existing) return { ok: false, code: "TEAM_ALREADY_EXISTS" };
 
   const now = new Date().toISOString();
   const teamRow = await db.insertTeam({
@@ -60,16 +57,16 @@ export const _createTeam = async (
 
 export const createTeam = withSession(_createTeam);
 
-export const _getMyTeam = async (
+export const _getMyTeams = async (
   _req: Record<string, never>,
   ctx: { actor: SessionUser },
   db: Queries = queries,
-): Promise<GetMyTeamEndpoint["response"]> => {
-  const row = await db.findTeamByOwnerId(ctx.actor.id);
-  return { ok: true, data: row ? rowToTeamView(row) : null };
+): Promise<GetMyTeamsEndpoint["response"]> => {
+  const rows = await db.listTeamsByOwnerId(ctx.actor.id);
+  return { ok: true, data: rows.map(rowToTeamView) };
 };
 
-export const getMyTeam = withSession(_getMyTeam);
+export const getMyTeams = withSession(_getMyTeams);
 
 export async function getTeamView(
   req: { teamId: string },
