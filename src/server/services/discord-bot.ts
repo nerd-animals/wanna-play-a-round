@@ -36,6 +36,34 @@ export function getDiscordBotConfig() {
   };
 }
 
+function getE2eGuildMemberOverride(
+  userId: string,
+): DiscordGuildMember | null | undefined {
+  if (process.env.NODE_ENV === "production") return undefined;
+
+  const denyPrefixes =
+    process.env.E2E_DISCORD_GUILD_NON_MEMBER_ID_PREFIXES?.split(",")
+      .map((value) => value.trim())
+      .filter(Boolean) ?? [];
+  if (denyPrefixes.some((prefix) => userId.startsWith(prefix))) {
+    return null;
+  }
+
+  const allowPrefixes =
+    process.env.E2E_DISCORD_GUILD_MEMBER_ID_PREFIXES?.split(",")
+      .map((value) => value.trim())
+      .filter(Boolean) ?? [];
+  if (allowPrefixes.some((prefix) => userId.startsWith(prefix))) {
+    return {
+      userId,
+      roleIds: [],
+      isPending: false,
+    };
+  }
+
+  return undefined;
+}
+
 function mapDiscordGuildMember(
   userId: string,
   payload: DiscordGuildMemberResponse,
@@ -52,6 +80,9 @@ function mapDiscordGuildMember(
 export async function fetchDiscordGuildMember(
   userId: string,
 ): Promise<DiscordGuildMember | null> {
+  const e2eOverride = getE2eGuildMemberOverride(userId);
+  if (e2eOverride !== undefined) return e2eOverride;
+
   const { botToken, guildId } = getDiscordBotConfig();
   const response = await fetch(
     `${DISCORD_API_BASE}/guilds/${guildId}/members/${userId}`,
@@ -83,6 +114,13 @@ export async function isDiscordGuildMember(userId: string): Promise<boolean> {
 export async function sendMatchConfirmedNotification(
   matchId: string,
 ): Promise<void> {
+  if (
+    process.env.NODE_ENV !== "production" &&
+    process.env.E2E_DISABLE_DISCORD_NOTIFICATIONS === "1"
+  ) {
+    return;
+  }
+
   const channelId = process.env.DISCORD_MATCH_CHANNEL_ID;
   if (!channelId) return;
 
