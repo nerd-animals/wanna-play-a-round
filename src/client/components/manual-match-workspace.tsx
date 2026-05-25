@@ -102,11 +102,11 @@ function CandidateCard({
 
   return (
     <div
-      className="rounded-[1.5rem] border border-border/80 bg-background/30 p-5 backdrop-blur-sm"
+      className="rounded-lg border border-border/80 bg-background/35 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] backdrop-blur-sm sm:p-5"
       data-testid={`manual-match-candidate-${candidate.post.id}`}
     >
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-        <div className="space-y-3">
+        <div className="min-w-0 flex-1 space-y-3">
           <div className="flex flex-wrap items-center gap-2">
             <Badge>{candidate.team.name}</Badge>
             <Badge variant="outline">{formatTierRange(candidate.post)}</Badge>
@@ -115,7 +115,7 @@ function CandidateCard({
             ) : null}
           </div>
           <div className="space-y-1">
-            <p className="text-lg font-semibold tracking-[-0.02em]">
+            <p className="text-lg font-semibold">
               {candidate.post.title}
             </p>
             <p className="text-sm leading-6 text-muted-foreground">
@@ -127,13 +127,13 @@ function CandidateCard({
             {formatDateTime(candidate.post.availableTime)}
           </p>
         </div>
-        <form action="/api/match-proposals" method="post">
+        <form action="/api/match-proposals" method="post" className="w-full sm:w-auto">
           <HiddenFormFields
             returnTo={returnTo}
             teamId={teamId}
             postId={candidate.post.id}
           />
-          <Button type="submit" disabled={disabled}>
+          <Button type="submit" disabled={disabled} className="w-full sm:w-auto">
             <Send />
             {candidate.hasPendingProposal ? "신청 대기 중" : "매칭 신청"}
           </Button>
@@ -154,7 +154,7 @@ function IncomingProposalCard({
 
   return (
     <div
-      className="rounded-[1.5rem] border border-border/80 bg-background/30 p-5 backdrop-blur-sm"
+      className="rounded-lg border border-border/80 bg-background/35 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] backdrop-blur-sm sm:p-5"
       data-testid={`manual-match-incoming-${item.proposal.id}`}
     >
       <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
@@ -215,7 +215,7 @@ function OutgoingProposalCard({
 
   return (
     <div
-      className="rounded-[1.5rem] border border-border/80 bg-background/30 p-5 backdrop-blur-sm"
+      className="rounded-lg border border-border/80 bg-background/35 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] backdrop-blur-sm sm:p-5"
       data-testid={`manual-match-outgoing-${item.proposal.id}`}
     >
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
@@ -264,7 +264,7 @@ function ConfirmedMatchCard({
 
   return (
     <div
-      className="rounded-[1.5rem] border border-border/80 bg-background/30 p-5 backdrop-blur-sm"
+      className="rounded-lg border border-border/80 bg-background/35 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] backdrop-blur-sm sm:p-5"
       data-testid={`manual-match-confirmed-${item.match.id}`}
     >
       <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
@@ -273,7 +273,7 @@ function ConfirmedMatchCard({
             <Badge variant="default">확정</Badge>
             <Badge variant="outline">{opponentTeam.name}</Badge>
           </div>
-          <p className="text-lg font-semibold tracking-[-0.02em]">
+          <p className="text-lg font-semibold">
             {ownPost.title} vs {opponentPost.title}
           </p>
           <p className="text-sm text-muted-foreground">
@@ -299,29 +299,40 @@ export function ManualMatchWorkspace({
   const pendingOutgoing = manualMatch.outgoingProposals.filter(
     (item) => item.proposal.status === "PENDING",
   ).length;
+  const pendingTotal = pendingIncoming + pendingOutgoing;
 
   return (
     <section className="grid gap-6">
       <Card>
-        <CardHeader>
-          <SectionHeader
-            eyebrow="Manual Matching"
-            title="수동 매칭"
-            description="상대 팀 모집글에 신청하고, 우리 팀으로 들어온 신청을 수락하거나 거절합니다."
-          />
+        <CardHeader className="border-b border-border/70">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+            <SectionHeader
+              eyebrow="Manual Matching"
+              title="수동 매칭"
+              description="상대 팀 모집글에 신청하고, 우리 팀으로 들어온 신청을 수락하거나 거절합니다."
+            />
+            <div className="flex flex-wrap gap-2">
+              <Badge variant={pendingTotal > 0 ? "default" : "outline"}>
+                대기 {pendingTotal}
+              </Badge>
+              <Badge variant={hasOwnOpenPost ? "default" : "destructive"}>
+                {hasOwnOpenPost ? "모집 중" : "모집글 필요"}
+              </Badge>
+            </div>
+          </div>
         </CardHeader>
-        <CardContent className="grid gap-4 lg:grid-cols-3">
-          <div className="rounded-[1.5rem] border border-border/80 bg-background/30 p-5">
+        <CardContent className="grid gap-3 pt-5 lg:grid-cols-3">
+          <div className="rounded-lg border border-border/80 bg-background/35 p-4">
             <p className="text-sm text-muted-foreground">신청 가능한 모집글</p>
             <p className="mt-2 text-2xl font-semibold">
               {manualMatch.candidates.length}
             </p>
           </div>
-          <div className="rounded-[1.5rem] border border-border/80 bg-background/30 p-5">
+          <div className="rounded-lg border border-border/80 bg-background/35 p-4">
             <p className="text-sm text-muted-foreground">받은 신청 대기</p>
             <p className="mt-2 text-2xl font-semibold">{pendingIncoming}</p>
           </div>
-          <div className="rounded-[1.5rem] border border-border/80 bg-background/30 p-5">
+          <div className="rounded-lg border border-border/80 bg-background/35 p-4">
             <p className="text-sm text-muted-foreground">보낸 신청 대기</p>
             <p className="mt-2 text-2xl font-semibold">{pendingOutgoing}</p>
           </div>

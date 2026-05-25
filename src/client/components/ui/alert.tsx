@@ -27,7 +27,7 @@ function Alert({
 }
 
 function AlertTitle({ className, ...props }: React.ComponentProps<"h5">) {
-  return <h5 className={cn("mb-1 font-semibold tracking-[-0.02em]", className)} {...props} />;
+  return <h5 className={cn("mb-1 font-semibold", className)} {...props} />;
 }
 
 function AlertDescription({ className, ...props }: React.ComponentProps<"div">) {

@@ -28,7 +28,7 @@ export default async function DashboardPage() {
             <div className="space-y-4">
               <Badge>Owner Dashboard</Badge>
               <div className="space-y-3">
-                <h1 className="text-4xl font-semibold tracking-[-0.06em] sm:text-5xl">{user.username}</h1>
+                <h1 className="text-4xl font-semibold sm:text-5xl">{user.username}</h1>
                 <p className="max-w-2xl text-base leading-7 text-muted-foreground">
                   Discord 로그인으로 팀장을 식별하고 팀 생성, 초대 링크, 매칭 등록 흐름을 순서대로
                   검증하는 운영 대시보드입니다.
