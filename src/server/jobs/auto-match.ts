@@ -13,6 +13,12 @@ export interface AutoMatchCandidate {
   averageTierDelta: number;
 }
 
+export interface AutoMatchRunResult {
+  dryRun: true;
+  maxAverageTierDelta: number;
+  candidates: AutoMatchCandidate[];
+}
+
 async function getTeamAverageTier(
   teamId: string,
   db: Queries,
@@ -69,8 +75,16 @@ export async function findAutoMatchCandidates(
   return candidates;
 }
 
-export async function runAutoMatch(
-  db: Queries = queries,
-): Promise<AutoMatchCandidate[]> {
-  return findAutoMatchCandidates(db);
+export async function runAutoMatch(options: {
+  db?: Queries;
+  maxAverageTierDelta?: number;
+} = {}): Promise<AutoMatchRunResult> {
+  const { db = queries, maxAverageTierDelta = 1 } = options;
+  const candidates = await findAutoMatchCandidates(db, maxAverageTierDelta);
+
+  return {
+    dryRun: true,
+    maxAverageTierDelta,
+    candidates,
+  };
 }
