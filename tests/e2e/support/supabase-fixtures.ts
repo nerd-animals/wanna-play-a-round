@@ -453,4 +453,31 @@ export class E2EWorld {
     );
     return row.status;
   }
+
+  async findLatestProposal(
+    targetPost: { id: string },
+    applicantTeam: TestTeam,
+  ): Promise<{ id: string; status: string; applicantPostId: string | null }> {
+    const row = await must<{
+      id: string;
+      status: string;
+      applicant_post_id: string | null;
+    }>(
+      "find latest proposal",
+      this.client
+        .from("match_proposals")
+        .select("id, status, applicant_post_id")
+        .eq("post_id", targetPost.id)
+        .eq("applicant_team_id", applicantTeam.id)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .single(),
+    );
+
+    return {
+      id: row.id,
+      status: row.status,
+      applicantPostId: row.applicant_post_id,
+    };
+  }
 }

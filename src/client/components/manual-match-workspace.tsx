@@ -101,7 +101,10 @@ function CandidateCard({
   const disabled = !canPropose || candidate.hasPendingProposal;
 
   return (
-    <div className="rounded-[1.5rem] border border-border/80 bg-background/30 p-5 backdrop-blur-sm">
+    <div
+      className="rounded-[1.5rem] border border-border/80 bg-background/30 p-5 backdrop-blur-sm"
+      data-testid={`manual-match-candidate-${candidate.post.id}`}
+    >
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div className="space-y-3">
           <div className="flex flex-wrap items-center gap-2">
@@ -150,7 +153,10 @@ function IncomingProposalCard({
   const isPending = item.proposal.status === "PENDING";
 
   return (
-    <div className="rounded-[1.5rem] border border-border/80 bg-background/30 p-5 backdrop-blur-sm">
+    <div
+      className="rounded-[1.5rem] border border-border/80 bg-background/30 p-5 backdrop-blur-sm"
+      data-testid={`manual-match-incoming-${item.proposal.id}`}
+    >
       <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
         <div className="space-y-3">
           <div className="flex flex-wrap items-center gap-2">
@@ -208,7 +214,10 @@ function OutgoingProposalCard({
   const isPending = item.proposal.status === "PENDING";
 
   return (
-    <div className="rounded-[1.5rem] border border-border/80 bg-background/30 p-5 backdrop-blur-sm">
+    <div
+      className="rounded-[1.5rem] border border-border/80 bg-background/30 p-5 backdrop-blur-sm"
+      data-testid={`manual-match-outgoing-${item.proposal.id}`}
+    >
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div className="space-y-3">
           <div className="flex flex-wrap items-center gap-2">
@@ -254,7 +263,10 @@ function ConfirmedMatchCard({
   const opponentPost = isLeftTeam ? item.rightPost : item.leftPost;
 
   return (
-    <div className="rounded-[1.5rem] border border-border/80 bg-background/30 p-5 backdrop-blur-sm">
+    <div
+      className="rounded-[1.5rem] border border-border/80 bg-background/30 p-5 backdrop-blur-sm"
+      data-testid={`manual-match-confirmed-${item.match.id}`}
+    >
       <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
         <div className="space-y-2">
           <div className="flex flex-wrap items-center gap-2">
