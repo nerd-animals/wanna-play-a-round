@@ -7,9 +7,12 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
+    "typecheck": "tsc --noEmit",
     "test": "vitest",
     "test:ui": "vitest --ui",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "test:e2e:tier-a": "playwright test tests/e2e/smoke.spec.ts",
+    "test:e2e:tier-b": "playwright test tests/e2e/tier-b-supabase.spec.ts"
   },
   "dependencies": {
     "@radix-ui/react-select": "^2.2.6",
