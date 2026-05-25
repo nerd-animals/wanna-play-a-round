@@ -5,7 +5,7 @@ test.describe("Public pages smoke", () => {
     await page.goto("/");
 
     await expect(
-      page.getByRole("heading", { level: 1, name: /e-sports control room/ }),
+      page.getByRole("heading", { level: 1, name: /스크림을 잡기 위한 팀 등록/ }),
     ).toBeVisible();
 
     const loginCta = page.getByRole("link", { name: /디스코드 로그인 시작/ });

@@ -18,13 +18,13 @@ import {
   CardHeader,
   CardTitle,
 } from "@/client/components/ui/card";
-import type { MatchPostView, TeamView } from "@/shared/domain";
 import type {
   ManualMatchCandidateView,
   ManualMatchContextView,
   ManualMatchProposalContextView,
   ManualMatchWorkspaceView,
 } from "@/shared/contracts/team";
+import type { MatchPostView, TeamView } from "@/shared/domain";
 
 type ManualMatchWorkspaceProps = {
   team: TeamView;
@@ -115,9 +115,7 @@ function CandidateCard({
             ) : null}
           </div>
           <div className="space-y-1">
-            <p className="text-lg font-semibold">
-              {candidate.post.title}
-            </p>
+            <p className="text-lg font-semibold">{candidate.post.title}</p>
             <p className="text-sm leading-6 text-muted-foreground">
               {candidate.post.description || "설명 없음"}
             </p>
@@ -347,14 +345,14 @@ export function ManualMatchWorkspace({
               받은 신청
             </CardTitle>
             <CardDescription>
-              수락하면 양 팀 모집글이 동시에 마감되고 매칭이 확정됩니다.
+              수락하면 두 팀 모집글을 동시에 마감하고 매칭을 확정합니다.
             </CardDescription>
           </CardHeader>
           <CardContent className="grid gap-3">
             {manualMatch.incomingProposals.length === 0 ? (
               <EmptyState
                 title="아직 받은 매칭 신청이 없습니다."
-                description="상대 팀이 우리 모집글에 신청하면 여기에서 확인할 수 있습니다."
+                description="상대 팀이 우리 모집글에 신청하면 이곳에서 확인할 수 있습니다."
               />
             ) : (
               manualMatch.incomingProposals.map((item) => (
@@ -375,7 +373,7 @@ export function ManualMatchWorkspace({
               보낸 신청
             </CardTitle>
             <CardDescription>
-              상대 팀이 수락하기 전까지 신청을 철회할 수 있습니다.
+              상대 팀이 수락하기 전까지 보낸 신청을 철회할 수 있습니다.
             </CardDescription>
           </CardHeader>
           <CardContent className="grid gap-3">
@@ -404,19 +402,19 @@ export function ManualMatchWorkspace({
             상대 모집글
           </CardTitle>
           <CardDescription>
-            우리 팀에 OPEN 모집글이 있어야 다른 팀 모집글에 신청할 수 있습니다.
+            우리 팀에 OPEN 모집글이 있으면 다른 팀 모집글에 신청할 수 있습니다.
           </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-3">
           {!hasOwnOpenPost ? (
             <EmptyState
               title="먼저 우리 팀 모집글을 등록하세요."
-              description="신청을 보내려면 우리 팀도 현재 OPEN 상태의 모집글이 필요합니다."
+              description="신청을 보내려면 우리 팀의 현재 OPEN 상태 모집글이 필요합니다."
             />
           ) : manualMatch.candidates.length === 0 ? (
             <EmptyState
               title="신청 가능한 상대 모집글이 없습니다."
-              description="다른 팀이 OPEN 모집글을 등록하면 여기에 표시됩니다."
+              description="다른 팀이 OPEN 모집글을 등록하면 이곳에 표시됩니다."
             />
           ) : (
             manualMatch.candidates.map((candidate) => (

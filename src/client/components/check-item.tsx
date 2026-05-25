@@ -12,7 +12,7 @@ export function CheckItem({ title, description, done = false, className }: Check
   return (
     <div
       className={cn(
-        "flex items-start gap-4 rounded-[1.5rem] border p-4 backdrop-blur-sm transition-colors",
+        "flex items-start gap-4 rounded-lg border p-4 backdrop-blur-sm transition-colors",
         done ? "border-primary/30 bg-primary/10" : "border-border/80 bg-background/30",
         className,
       )}

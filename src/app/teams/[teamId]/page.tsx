@@ -87,9 +87,14 @@ export default async function TeamDetailPage({ params, searchParams }: Props) {
                 </p>
               </div>
             </div>
-            <Button asChild size="lg">
-              <Link href={`/teams/${team.id}/matches/new`}>매칭 등록</Link>
-            </Button>
+            <div className="flex flex-wrap gap-3">
+              <Button asChild size="lg">
+                <Link href="/matches">매칭 찾기</Link>
+              </Button>
+              <Button asChild variant="outline" size="lg">
+                <Link href={`/teams/${team.id}/matches/new`}>매칭 등록</Link>
+              </Button>
+            </div>
           </div>
 
           <div className="grid gap-3 lg:grid-cols-3">

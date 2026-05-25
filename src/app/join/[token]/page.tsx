@@ -181,7 +181,7 @@ export default async function JoinTeamPage({ params, searchParams }: Props) {
                   name="soloTier"
                   defaultValue=""
                   required
-                  className="h-12 rounded-2xl border border-input/90 bg-background/50 px-4 py-3 text-sm text-foreground outline-none transition-[border-color,box-shadow,background-color] focus-visible:border-primary/70 focus-visible:ring-4 focus-visible:ring-ring/20"
+                  className="h-12 rounded-lg border border-input/90 bg-background/50 px-4 py-3 text-sm text-foreground outline-none transition-[border-color,box-shadow,background-color] focus-visible:border-primary/70 focus-visible:ring-4 focus-visible:ring-ring/20"
                 >
                   <option value="" disabled>
                     티어 선택
