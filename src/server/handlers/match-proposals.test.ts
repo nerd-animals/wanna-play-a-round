@@ -70,6 +70,7 @@ function makeProposal(
     id: "proposal-1",
     post_id: "post-target",
     applicant_team_id: applicantTeam.id,
+    applicant_post_id: "post-applicant",
     status: "PENDING",
     created_by_user_id: applicantOwner.id,
     created_at: "2026-05-20T00:00:00.000Z",
@@ -116,6 +117,7 @@ describe("_proposeMatch", () => {
     expect(inserted[0]).toMatchObject({
       post_id: "post-target",
       applicant_team_id: applicantTeam.id,
+      applicant_post_id: "post-applicant",
       status: "PENDING",
       created_by_user_id: applicantOwner.id,
     });

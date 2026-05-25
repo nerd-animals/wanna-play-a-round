@@ -55,6 +55,7 @@ export const _proposeMatch = async (
     id: createId(),
     post_id: targetPost.id,
     applicant_team_id: ctx.team.id,
+    applicant_post_id: applicantOpenPost.id,
     status: "PENDING",
     created_by_user_id: ctx.actor.id,
     created_at: now,

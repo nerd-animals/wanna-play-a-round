@@ -71,6 +71,7 @@ create table if not exists match_proposals (
   id text primary key,
   post_id text not null references match_posts(id) on delete cascade,
   applicant_team_id text not null references teams(id) on delete cascade,
+  applicant_post_id text references match_posts(id) on delete cascade,
   status text not null check (status in ('PENDING', 'ACCEPTED', 'REJECTED', 'WITHDRAWN')),
   created_by_user_id text not null references users(id) on delete cascade,
   created_at timestamptz not null default now(),
@@ -294,6 +295,7 @@ returns table (
   proposal_id text,
   proposal_post_id text,
   proposal_applicant_team_id text,
+  proposal_applicant_post_id text,
   proposal_status text,
   proposal_created_by_user_id text,
   proposal_created_at timestamptz,
@@ -345,13 +347,20 @@ begin
     return;
   end if;
 
-  select *
-  into v_applicant_post
-  from match_posts
-  where match_posts.team_id = v_proposal.applicant_team_id
-    and match_posts.status = 'OPEN'
-  order by match_posts.created_at desc
-  limit 1;
+  if v_proposal.applicant_post_id is null then
+    select *
+    into v_applicant_post
+    from match_posts
+    where match_posts.team_id = v_proposal.applicant_team_id
+      and match_posts.status = 'OPEN'
+    order by match_posts.created_at desc
+    limit 1;
+  else
+    select *
+    into v_applicant_post
+    from match_posts
+    where match_posts.id = v_proposal.applicant_post_id;
+  end if;
 
   if not found then
     result_code := 'APPLICANT_OPEN_MATCH_NOT_FOUND';
@@ -457,6 +466,7 @@ begin
   proposal_id := v_proposal.id;
   proposal_post_id := v_proposal.post_id;
   proposal_applicant_team_id := v_proposal.applicant_team_id;
+  proposal_applicant_post_id := v_proposal.applicant_post_id;
   proposal_status := v_proposal.status;
   proposal_created_by_user_id := v_proposal.created_by_user_id;
   proposal_created_at := v_proposal.created_at;
