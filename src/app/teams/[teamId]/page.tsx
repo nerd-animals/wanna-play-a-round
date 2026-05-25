@@ -81,7 +81,7 @@ export default async function TeamDetailPage({ params, searchParams }: Props) {
             <div className="space-y-4">
               <Badge>Team Management</Badge>
               <div className="space-y-3">
-                <h1 className="text-4xl font-semibold tracking-[-0.06em] sm:text-5xl">{team.name}</h1>
+                <h1 className="text-4xl font-semibold sm:text-5xl">{team.name}</h1>
                 <p className="max-w-3xl text-base leading-7 text-muted-foreground">
                   {team.description || "팀 소개가 아직 없습니다."}
                 </p>
@@ -92,7 +92,7 @@ export default async function TeamDetailPage({ params, searchParams }: Props) {
             </Button>
           </div>
 
-          <div className="grid gap-4 lg:grid-cols-3">
+          <div className="grid gap-3 lg:grid-cols-3">
             <StatCard
               label="활동 시간"
               value={team.activityTime || "미정"}
@@ -197,7 +197,7 @@ export default async function TeamDetailPage({ params, searchParams }: Props) {
                 inviteLinks.map((link) => (
                   <div
                     key={link.id}
-                    className="rounded-[1.5rem] border border-border/80 bg-background/30 p-5 backdrop-blur-sm"
+                    className="rounded-lg border border-border/80 bg-background/35 p-4 backdrop-blur-sm sm:p-5"
                   >
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                       <div className="space-y-2">
@@ -234,10 +234,10 @@ export default async function TeamDetailPage({ params, searchParams }: Props) {
             {members.map((member) => (
               <div
                 key={member.id}
-                className="flex flex-col gap-3 rounded-[1.5rem] border border-border/80 bg-background/30 p-5 backdrop-blur-sm sm:flex-row sm:items-center sm:justify-between"
+                className="flex flex-col gap-3 rounded-lg border border-border/80 bg-background/35 p-4 backdrop-blur-sm sm:flex-row sm:items-center sm:justify-between sm:p-5"
               >
                 <div className="space-y-1">
-                  <p className="font-semibold tracking-[-0.02em] text-foreground">{formatMemberName(member.displayName)}</p>
+                  <p className="font-semibold text-foreground">{formatMemberName(member.displayName)}</p>
                   <p className="text-sm text-muted-foreground">
                     {member.role === "OWNER" ? "팀장" : "팀원"} / {member.status}
                   </p>
@@ -288,7 +288,7 @@ export default async function TeamDetailPage({ params, searchParams }: Props) {
             matchPosts.map((post) => (
               <div
                 key={post.id}
-                className="rounded-[1.5rem] border border-border/80 bg-background/30 p-5 backdrop-blur-sm"
+                className="rounded-lg border border-border/80 bg-background/35 p-4 backdrop-blur-sm sm:p-5"
               >
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                   <div className="space-y-2">
@@ -300,7 +300,7 @@ export default async function TeamDetailPage({ params, searchParams }: Props) {
                         </Badge>
                       )}
                     </div>
-                    <p className="text-lg font-semibold tracking-[-0.03em] text-foreground">{post.title}</p>
+                    <p className="text-lg font-semibold text-foreground">{post.title}</p>
                     <p className="text-sm leading-6 text-muted-foreground">{post.description || "설명 없음"}</p>
                   </div>
                   {post.availableTime ? (

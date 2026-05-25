@@ -28,7 +28,7 @@ export function CheckItem({ title, description, done = false, className }: Check
         {done ? <Check className="size-4" /> : <CircleDashed className="size-4" />}
       </div>
       <div className="space-y-1">
-        <p className="text-sm font-semibold tracking-[-0.02em] text-foreground">{title}</p>
+        <p className="text-sm font-semibold text-foreground">{title}</p>
         {description ? <p className="text-sm leading-6 text-muted-foreground">{description}</p> : null}
       </div>
     </div>

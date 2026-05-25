@@ -14,7 +14,7 @@ export function EmptyState({ title, description, className }: EmptyStateProps) {
         className,
       )}
     >
-      <p className="font-semibold tracking-[-0.02em] text-foreground">{title}</p>
+      <p className="font-semibold text-foreground">{title}</p>
       <p className="mt-2 leading-6 text-muted-foreground">{description}</p>
     </div>
   );

@@ -48,7 +48,7 @@ export default async function Home({ searchParams }: Props) {
           <div className="space-y-6">
             <Badge>Scrim Finder MVP</Badge>
             <div className="space-y-4">
-              <h1 className="max-w-4xl text-4xl font-semibold tracking-[-0.06em] text-balance sm:text-5xl lg:text-6xl">
+              <h1 className="max-w-4xl text-4xl font-semibold text-balance sm:text-5xl lg:text-6xl">
                 팀 운영과 스크림 모집 흐름을 한 화면에서 검증하는 e-sports control room.
               </h1>
               <p className="max-w-2xl text-base leading-7 text-muted-foreground sm:text-lg">

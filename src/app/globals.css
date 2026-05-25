@@ -79,16 +79,7 @@
     font-family: var(--font-sans);
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
     background-image:
-      radial-gradient(
-        circle at top,
-        rgba(127, 140, 255, 0.24),
-        transparent 32%
-      ),
-      radial-gradient(
-        circle at 20% 20%,
-        rgba(99, 245, 210, 0.12),
-        transparent 28%
-      ),
+      linear-gradient(180deg, rgba(13, 20, 48, 0.92) 0%, transparent 36%),
       linear-gradient(180deg, rgba(4, 8, 20, 0.94) 0%, rgba(3, 6, 16, 1) 100%);
     background-attachment: fixed;
   }
