@@ -3,6 +3,7 @@ import type { LolTier, MatchPostView } from "../domain";
 
 export type MatchErrorCode =
   | "TITLE_REQUIRED"
+  | "AVAILABLE_TIME_INVALID"
   | "OPEN_MATCH_ALREADY_EXISTS"
   | "TEAM_NOT_COMPLETE"
   | "MATCH_POST_NOT_FOUND";

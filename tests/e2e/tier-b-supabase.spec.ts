@@ -198,7 +198,7 @@ dbTest.describe("Tier B Supabase-backed E2E flows", () => {
     await page.goto(`/teams/${fullTeam.id}/matches/new`);
     await page.locator('input[name="title"]').fill(openTitle);
     await page.locator('textarea[name="description"]').fill("E2E match post description");
-    await page.locator('input[name="availableTime"]').fill("Friday 22:00");
+    await page.locator('input[name="availableTime"]').fill("2099-12-31T22:00");
 
     await Promise.all([
       page.waitForURL(/matchCreated=1/),

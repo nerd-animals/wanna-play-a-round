@@ -25,6 +25,7 @@ const team: TeamRow = {
 };
 
 const baseReq = { teamId: team.id, title: "Scrim @ 8pm" };
+const futureAvailableTime = "2099-12-31T22:00";
 
 function makeMember(over: Partial<TeamMemberRow> = {}): TeamMemberRow {
   return {
@@ -104,6 +105,21 @@ describe("_registerMatchPost", () => {
     expect(res).toEqual({ ok: false, code: "TEAM_NOT_COMPLETE" });
   });
 
+  it("returns AVAILABLE_TIME_INVALID when provided time is not a future datetime", async () => {
+    const db = {
+      findOpenMatchPost: async () => null,
+      listTeamMembers: async () => activeMembers(5),
+    } as unknown as Queries;
+
+    const res = await _registerMatchPost(
+      { ...baseReq, availableTime: "Friday 22:00" },
+      { actor, team },
+      db,
+    );
+
+    expect(res).toEqual({ ok: false, code: "AVAILABLE_TIME_INVALID" });
+  });
+
   it("inserts an OPEN post when exactly 5 ACTIVE members", async () => {
     const inserts: MatchPostRow[] = [];
     const db = {
@@ -115,11 +131,18 @@ describe("_registerMatchPost", () => {
       },
     } as unknown as Queries;
 
-    const res = await _registerMatchPost(baseReq, { actor, team }, db);
+    const res = await _registerMatchPost(
+      { ...baseReq, availableTime: futureAvailableTime },
+      { actor, team },
+      db,
+    );
     expect(res.ok).toBe(true);
     expect(inserts).toHaveLength(1);
     expect(inserts[0].status).toBe("OPEN");
     expect(inserts[0].team_id).toBe(team.id);
     expect(inserts[0].created_by_user_id).toBe(actor.id);
+    expect(inserts[0].available_time).toBe(
+      new Date(futureAvailableTime).toISOString(),
+    );
   });
 });

@@ -5,6 +5,7 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 const BASE_URL = process.env.PLAYWRIGHT_BASE_URL ?? "http://localhost:3000";
 const SESSION_COOKIE = "sf_owner_session";
+const FUTURE_AVAILABLE_TIME = new Date("2099-12-31T22:00").toISOString();
 
 type SupabaseResult<T> = PromiseLike<{
   data: T | null;
@@ -327,7 +328,7 @@ export class E2EWorld {
         description: `${post.title} description`,
         min_tier: "SILVER",
         max_tier: "PLATINUM",
-        available_time: "Friday 22:00",
+        available_time: FUTURE_AVAILABLE_TIME,
         status: "OPEN",
         created_by_user_id: owner.id,
         created_at: now,
