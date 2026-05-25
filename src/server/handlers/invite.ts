@@ -58,19 +58,26 @@ function normalizeRiotProfile(req: JoinByInviteRequest): {
 }
 
 export const _createInviteLink = async (
-  req: CreateInviteLinkRequest,
+  _req: CreateInviteLinkRequest,
   ctx: { actor: SessionUser; team: TeamRow },
   db: Queries = queries,
 ): Promise<CreateInviteLinkEndpoint["response"]> => {
+  const existingLinks = await db.listInviteLinks(ctx.team.id);
+  await Promise.all(
+    existingLinks
+      .filter((link) => link.status === "ACTIVE")
+      .map((link) => db.updateInviteLink({ ...link, status: "DISABLED" })),
+  );
+
   const link = await db.insertInviteLink({
     id: createId(),
     team_id: ctx.team.id,
     token: createToken(),
     created_by_user_id: ctx.actor.id,
     status: "ACTIVE",
-    max_uses: req.maxUses ?? null,
+    max_uses: null,
     used_count: 0,
-    expires_at: req.expiresAt ?? null,
+    expires_at: null,
     created_at: new Date().toISOString(),
   });
   return { ok: true, data: rowToTeamInviteLinkView(link) };

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { ExternalLink, Link2, Swords, Users } from "lucide-react";
+import { ExternalLink, Link2, RefreshCw, Swords, Users } from "lucide-react";
 import { AppShell } from "@/client/components/app-shell";
 import { CheckItem } from "@/client/components/check-item";
 import { EmptyState } from "@/client/components/empty-state";
@@ -11,8 +11,6 @@ import { StatusAlert } from "@/client/components/status-alert";
 import { Badge } from "@/client/components/ui/badge";
 import { Button } from "@/client/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/client/components/ui/card";
-import { Input } from "@/client/components/ui/input";
-import { Label } from "@/client/components/ui/label";
 import { Separator } from "@/client/components/ui/separator";
 import { getTeamView } from "@/server/handlers/team";
 import { getCurrentUser } from "@/server/session";
@@ -120,7 +118,7 @@ export default async function TeamDetailPage({ params, searchParams }: Props) {
               <StatusAlert title="작업 오류" tone="destructive" description={query.error} />
             ) : null}
             {query.inviteCreated ? (
-              <StatusAlert title="초대 링크 생성 완료" tone="success" description="새 초대 링크를 만들었습니다." />
+              <StatusAlert title="초대 링크 준비 완료" tone="success" description="기존 활성 링크를 닫고 새 링크를 사용할 수 있게 했습니다." />
             ) : null}
             {query.matchCreated ? (
               <StatusAlert title="매칭 등록 완료" tone="success" description="새 매칭 글을 등록했습니다." />
@@ -162,7 +160,7 @@ export default async function TeamDetailPage({ params, searchParams }: Props) {
             <SectionHeader
               eyebrow="Invite Links"
               title="공유 가능한 팀 합류 링크"
-              description="링크를 발급하고 사용량과 상태를 함께 추적합니다."
+              description="버튼 하나로 링크를 만들거나 재발급합니다. 재발급하면 이전 활성 링크는 자동으로 닫힙니다."
               action={
                 activeInvite ? (
                   <Button asChild variant="outline">
@@ -176,20 +174,13 @@ export default async function TeamDetailPage({ params, searchParams }: Props) {
             />
           </CardHeader>
           <CardContent className="space-y-6">
-            <form action={`/api/teams/${team.id}/invite-links`} method="post" className="grid gap-5">
-              <div className="grid gap-5 md:grid-cols-2">
-                <div className="grid gap-2">
-                  <Label htmlFor="maxUses">최대 사용 횟수</Label>
-                  <Input id="maxUses" name="maxUses" type="number" min="1" placeholder="비워두면 무제한" />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="expiresAt">만료 시각</Label>
-                  <Input id="expiresAt" name="expiresAt" type="datetime-local" />
-                </div>
-              </div>
+            <form action={`/api/teams/${team.id}/invite-links`} method="post" className="grid gap-3">
+              <p className="text-sm leading-6 text-muted-foreground">
+                초대 링크는 별도 만료 없이 유지됩니다. 링크가 노출됐거나 새로 공유하고 싶을 때 재발급하세요.
+              </p>
               <Button type="submit" className="w-full sm:w-fit">
-                <Link2 />
-                초대 링크 생성
+                {activeInvite ? <RefreshCw /> : <Link2 />}
+                {activeInvite ? "초대 링크 재발급" : "초대 링크 생성"}
               </Button>
             </form>
 
@@ -209,16 +200,21 @@ export default async function TeamDetailPage({ params, searchParams }: Props) {
                         <div className="flex flex-wrap items-center gap-2">
                           <Badge variant={statusVariant(link.status)}>{link.status}</Badge>
                           <span className="text-sm text-muted-foreground">
-                            사용 {link.usedCount}
-                            {link.maxUses ? ` / ${link.maxUses}` : ""}
+                            사용 {link.usedCount}회
                           </span>
                         </div>
                         <p className="text-sm font-medium text-foreground">/join/{link.token}</p>
                         <code className="block break-all text-xs text-muted-foreground">{link.token}</code>
                       </div>
-                      <Button asChild variant="outline" size="sm">
-                        <Link href={`/join/${link.token}`}>링크 열기</Link>
-                      </Button>
+                      {link.status === "ACTIVE" ? (
+                        <Button asChild variant="outline" size="sm">
+                          <Link href={`/join/${link.token}`}>링크 열기</Link>
+                        </Button>
+                      ) : (
+                        <Button variant="outline" size="sm" disabled>
+                          닫힌 링크
+                        </Button>
+                      )}
                     </div>
                   </div>
                 ))

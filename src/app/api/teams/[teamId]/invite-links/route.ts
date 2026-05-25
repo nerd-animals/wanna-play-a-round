@@ -10,16 +10,9 @@ export async function POST(
   context: Context,
 ): Promise<NextResponse> {
   const { teamId } = await context.params;
-  const formData = await request.formData();
-  const maxUsesValue = String(formData.get("maxUses") ?? "").trim();
-  const expiresAt = String(formData.get("expiresAt") ?? "").trim();
 
   try {
-    const result = await createInviteLink({
-      teamId,
-      maxUses: maxUsesValue ? Number(maxUsesValue) : undefined,
-      expiresAt: expiresAt || undefined,
-    });
+    const result = await createInviteLink({ teamId });
     if (!result.ok) {
       const target =
         result.code === "UNAUTHORIZED"

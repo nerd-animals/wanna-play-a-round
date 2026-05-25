@@ -64,9 +64,21 @@ function makeMember(over: Partial<TeamMemberRow> = {}): TeamMemberRow {
 }
 
 describe("_createInviteLink", () => {
-  it("inserts an ACTIVE invite link for the owner team", async () => {
+  it("disables existing active links and inserts one unlimited ACTIVE invite link", async () => {
     const inserts: InviteLinkRow[] = [];
+    const updates: InviteLinkRow[] = [];
+    const oldActiveLink = makeInviteLink({ id: "old-active", token: "old-token" });
+    const oldDisabledLink = makeInviteLink({
+      id: "old-disabled",
+      token: "old-disabled-token",
+      status: "DISABLED",
+    });
     const db = {
+      listInviteLinks: async () => [oldActiveLink, oldDisabledLink],
+      updateInviteLink: async (row: InviteLinkRow) => {
+        updates.push(row);
+        return row;
+      },
       insertInviteLink: async (row: InviteLinkRow) => {
         inserts.push(row);
         return row;
@@ -74,20 +86,26 @@ describe("_createInviteLink", () => {
     } as unknown as Queries;
 
     const res = await _createInviteLink(
-      { teamId: team.id, maxUses: 5, expiresAt: "2026-06-01T00:00:00.000Z" },
+      { teamId: team.id },
       { actor, team },
       db,
     );
 
     expect(res.ok).toBe(true);
+    expect(updates).toMatchObject([
+      {
+        id: oldActiveLink.id,
+        status: "DISABLED",
+      },
+    ]);
     expect(inserts).toHaveLength(1);
     expect(inserts[0]).toMatchObject({
       team_id: team.id,
       created_by_user_id: actor.id,
       status: "ACTIVE",
-      max_uses: 5,
+      max_uses: null,
       used_count: 0,
-      expires_at: "2026-06-01T00:00:00.000Z",
+      expires_at: null,
     });
     expect(inserts[0].token).toBeTruthy();
   });
