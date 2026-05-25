@@ -282,4 +282,81 @@ dbTest.describe("Tier B Supabase-backed E2E flows", () => {
       return post?.status;
     }).toBe("CLOSED");
   });
+
+  dbTest("proposes and accepts a match through the team page UI", async ({
+    page,
+    world,
+  }) => {
+    const targetOwner = await world.createUser("ui-target-owner");
+    const applicantOwner = await world.createUser("ui-applicant-owner");
+    const targetTeam = await world.createTeam(targetOwner, "ui-target");
+    const applicantTeam = await world.createTeam(applicantOwner, "ui-applicant");
+    await world.createFullRoster(targetTeam);
+    await world.createFullRoster(applicantTeam);
+    const targetPost = await world.createMatchPost(
+      targetTeam,
+      targetOwner,
+      "ui-target",
+    );
+    const applicantPost = await world.createMatchPost(
+      applicantTeam,
+      applicantOwner,
+      "ui-applicant",
+    );
+
+    await loginAs(page.context(), applicantOwner.id);
+    await page.goto(`/teams/${applicantTeam.id}`);
+    await expect(page.getByRole("heading", { name: "수동 매칭" })).toBeVisible();
+
+    const candidate = page.getByTestId(`manual-match-candidate-${targetPost.id}`);
+    await expect(candidate).toContainText(targetTeam.name);
+    await expect(candidate).toContainText(targetPost.title);
+
+    await Promise.all([
+      page.waitForURL(/proposalSent=1/),
+      candidate.getByRole("button", { name: "매칭 신청" }).click(),
+    ]);
+
+    await expect(page.getByText("매칭 신청 완료")).toBeVisible();
+    const proposal = await world.findLatestProposal(targetPost, applicantTeam);
+    expect(proposal).toMatchObject({
+      status: "PENDING",
+      applicantPostId: applicantPost.id,
+    });
+    await expect(
+      page.getByTestId(`manual-match-outgoing-${proposal.id}`),
+    ).toContainText("대기 중");
+
+    await loginAs(page.context(), targetOwner.id);
+    await page.goto(`/teams/${targetTeam.id}`);
+
+    const incoming = page.getByTestId(`manual-match-incoming-${proposal.id}`);
+    await expect(incoming).toContainText(applicantTeam.name);
+    await expect(incoming).toContainText(applicantPost.title);
+
+    await Promise.all([
+      page.waitForURL(/matchConfirmed=1/),
+      incoming.getByRole("button", { name: "수락" }).click(),
+    ]);
+
+    await expect(page.getByText("매칭 확정 완료")).toBeVisible();
+    await expect.poll(() => world.getProposalStatus(proposal.id)).toBe("ACCEPTED");
+    await expect.poll(async () => {
+      const post = await world.getMatchPostByTitle(targetTeam, targetPost.title);
+      return post?.status;
+    }).toBe("CLOSED");
+    await expect.poll(async () => {
+      const post = await world.getMatchPostByTitle(applicantTeam, applicantPost.title);
+      return post?.status;
+    }).toBe("CLOSED");
+    await expect(
+      page.getByText(`${targetPost.title} vs ${applicantPost.title}`),
+    ).toBeVisible();
+
+    await loginAs(page.context(), applicantOwner.id);
+    await page.goto(`/teams/${applicantTeam.id}`);
+    await expect(
+      page.getByText(`${applicantPost.title} vs ${targetPost.title}`),
+    ).toBeVisible();
+  });
 });
