@@ -4,6 +4,7 @@ import { ExternalLink, Link2, Swords, Users } from "lucide-react";
 import { AppShell } from "@/client/components/app-shell";
 import { CheckItem } from "@/client/components/check-item";
 import { EmptyState } from "@/client/components/empty-state";
+import { ManualMatchWorkspace } from "@/client/components/manual-match-workspace";
 import { SectionHeader } from "@/client/components/section-header";
 import { StatCard } from "@/client/components/stat-card";
 import { StatusAlert } from "@/client/components/status-alert";
@@ -18,7 +19,15 @@ import { getCurrentUser } from "@/server/session";
 
 type Props = {
   params: Promise<{ teamId: string }>;
-  searchParams: Promise<{ error?: string; inviteCreated?: string; matchCreated?: string }>;
+  searchParams: Promise<{
+    error?: string;
+    inviteCreated?: string;
+    matchCreated?: string;
+    proposalSent?: string;
+    proposalRejected?: string;
+    proposalWithdrawn?: string;
+    matchConfirmed?: string;
+  }>;
 };
 
 function formatMemberName(name?: string): string {
@@ -54,7 +63,7 @@ export default async function TeamDetailPage({ params, searchParams }: Props) {
   if (!result.ok) {
     notFound();
   }
-  const { team, members, inviteLinks, matchPosts } = result.data;
+  const { team, members, inviteLinks, matchPosts, manualMatch } = result.data;
 
   if (team.ownerUserId !== user.id) {
     redirect("/dashboard");
@@ -110,6 +119,18 @@ export default async function TeamDetailPage({ params, searchParams }: Props) {
             ) : null}
             {query.matchCreated ? (
               <StatusAlert title="매칭 등록 완료" tone="success" description="새 매칭 글을 등록했습니다." />
+            ) : null}
+            {query.proposalSent ? (
+              <StatusAlert title="매칭 신청 완료" tone="success" description="상대 팀 owner가 수락하면 매칭이 확정됩니다." />
+            ) : null}
+            {query.proposalRejected ? (
+              <StatusAlert title="신청 거절 완료" tone="success" description="해당 매칭 신청을 거절했습니다." />
+            ) : null}
+            {query.proposalWithdrawn ? (
+              <StatusAlert title="신청 철회 완료" tone="success" description="보낸 매칭 신청을 철회했습니다." />
+            ) : null}
+            {query.matchConfirmed ? (
+              <StatusAlert title="매칭 확정 완료" tone="success" description="양 팀 모집글이 CLOSED 상태로 마감됐습니다." />
             ) : null}
           </div>
         </CardContent>
@@ -236,6 +257,13 @@ export default async function TeamDetailPage({ params, searchParams }: Props) {
           </CardContent>
         </Card>
       </section>
+
+      <ManualMatchWorkspace
+        team={team}
+        matchPosts={matchPosts}
+        manualMatch={manualMatch}
+        returnTo={`/teams/${team.id}`}
+      />
 
       <Card>
         <CardHeader>

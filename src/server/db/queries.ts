@@ -56,6 +56,7 @@ type AcceptMatchProposalRpcRow = {
   proposal_id: string | null;
   proposal_post_id: string | null;
   proposal_applicant_team_id: string | null;
+  proposal_applicant_post_id: string | null;
   proposal_status: MatchProposalStatus | null;
   proposal_created_by_user_id: string | null;
   proposal_created_at: string | null;
@@ -177,6 +178,7 @@ function requireAcceptedMatchFromRpc(row: AcceptMatchProposalRpcRow): {
       id: row.proposal_id,
       post_id: row.proposal_post_id,
       applicant_team_id: row.proposal_applicant_team_id,
+      applicant_post_id: row.proposal_applicant_post_id,
       status: row.proposal_status,
       created_by_user_id: row.proposal_created_by_user_id,
       created_at: row.proposal_created_at,
@@ -570,6 +572,23 @@ export const queries = {
     return data ?? [];
   },
 
+  async listMatchProposalsForPostIds(
+    postIds: string[],
+  ): Promise<MatchProposalRow[]> {
+    if (postIds.length === 0) return [];
+
+    const client = getSupabaseAdminClient();
+    const { data, error } = await client
+      .from("match_proposals")
+      .select("*")
+      .in("post_id", postIds)
+      .order("created_at", { ascending: false })
+      .returns<MatchProposalRow[]>();
+    if (error)
+      throw new Error(`MATCH_PROPOSALS_LIST_FOR_POSTS_FAILED:${error.message}`);
+    return data ?? [];
+  },
+
   async updateMatchProposalStatus(
     id: string,
     status: MatchProposalRow["status"],
@@ -623,6 +642,18 @@ export const queries = {
       .select()
       .single<MatchRow>();
     return unwrap(data, error, "MATCHES_INSERT_FAILED");
+  },
+
+  async listMatchesForTeam(teamId: string): Promise<MatchRow[]> {
+    const client = getSupabaseAdminClient();
+    const { data, error } = await client
+      .from("matches")
+      .select("*")
+      .or(`left_team_id.eq.${teamId},right_team_id.eq.${teamId}`)
+      .order("confirmed_at", { ascending: false })
+      .returns<MatchRow[]>();
+    if (error) throw new Error(`MATCHES_LIST_FOR_TEAM_FAILED:${error.message}`);
+    return data ?? [];
   },
 };
 

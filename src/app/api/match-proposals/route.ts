@@ -3,6 +3,7 @@ import {
   listMatchProposals,
   proposeMatch,
 } from "@/server/handlers/match-proposals";
+import { isFormSubmission, redirectWithQuery } from "@/server/lib/form-redirect";
 import { statusFromError } from "@/shared/api";
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
@@ -17,6 +18,25 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 }
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
+  if (isFormSubmission(request)) {
+    const formData = await request.formData();
+    const result = await proposeMatch({
+      postId: String(formData.get("postId") ?? ""),
+      teamId: String(formData.get("teamId") ?? ""),
+    });
+    const returnTo = String(formData.get("returnTo") ?? "");
+
+    if (!result.ok && result.code === "UNAUTHORIZED") {
+      return NextResponse.redirect(new URL("/", request.url));
+    }
+
+    return redirectWithQuery(
+      request,
+      returnTo,
+      result.ok ? { proposalSent: "1" } : { error: result.code },
+    );
+  }
+
   const body = (await request.json()) as { postId?: string; teamId?: string };
   const result = await proposeMatch({
     postId: body.postId ?? "",

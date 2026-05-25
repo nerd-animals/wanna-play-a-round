@@ -104,6 +104,7 @@ export function rowToMatchProposalView(
     id: row.id,
     postId: row.post_id,
     applicantTeamId: row.applicant_team_id,
+    applicantPostId: row.applicant_post_id ?? undefined,
     status: row.status,
     createdByUserId: row.created_by_user_id,
     createdAt: row.created_at,

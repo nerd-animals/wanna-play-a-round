@@ -92,6 +92,7 @@ export interface MatchProposalView {
   id: string;
   postId: string;
   applicantTeamId: string;
+  applicantPostId?: string;
   status: MatchProposalStatus;
   createdByUserId: string;
   createdAt: string;

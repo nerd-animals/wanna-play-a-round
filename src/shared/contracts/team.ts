@@ -1,6 +1,8 @@
 import type { ActionResult } from "../api";
 import type {
+  MatchProposalView,
   MatchPostView,
+  MatchView,
   TeamInviteLinkView,
   TeamMemberView,
   TeamView,
@@ -27,6 +29,36 @@ export interface GetTeamViewData {
   members: TeamMemberView[];
   inviteLinks: TeamInviteLinkView[];
   matchPosts: MatchPostView[];
+  manualMatch: ManualMatchWorkspaceView;
+}
+
+export interface ManualMatchCandidateView {
+  post: MatchPostView;
+  team: TeamView;
+  hasPendingProposal: boolean;
+}
+
+export interface ManualMatchProposalContextView {
+  proposal: MatchProposalView;
+  targetPost: MatchPostView;
+  targetTeam: TeamView;
+  applicantPost?: MatchPostView;
+  applicantTeam: TeamView;
+}
+
+export interface ManualMatchContextView {
+  match: MatchView;
+  leftPost: MatchPostView;
+  rightPost: MatchPostView;
+  leftTeam: TeamView;
+  rightTeam: TeamView;
+}
+
+export interface ManualMatchWorkspaceView {
+  candidates: ManualMatchCandidateView[];
+  incomingProposals: ManualMatchProposalContextView[];
+  outgoingProposals: ManualMatchProposalContextView[];
+  confirmedMatches: ManualMatchContextView[];
 }
 export interface GetTeamViewEndpoint {
   method: "GET";

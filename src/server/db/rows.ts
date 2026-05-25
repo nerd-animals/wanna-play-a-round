@@ -81,6 +81,7 @@ export interface MatchProposalRow {
   id: string;
   post_id: string;
   applicant_team_id: string;
+  applicant_post_id: string | null;
   status: MatchProposalStatus;
   created_by_user_id: string;
   created_at: string;

@@ -181,12 +181,14 @@ async function createProposal(
   applicantTeam: TeamRow,
   createdBy: UserRow,
   status: MatchProposalRow["status"] = "PENDING",
+  applicantPostId: string | null = null,
 ): Promise<MatchProposalRow> {
   const createdAt = now();
   return queries.insertMatchProposal({
     id: nextId(`proposal-${status.toLowerCase()}`),
     post_id: post.id,
     applicant_team_id: applicantTeam.id,
+    applicant_post_id: applicantPostId,
     status,
     created_by_user_id: createdBy.id,
     created_at: createdAt,
@@ -306,7 +308,13 @@ describeIfSupabase("queries Supabase integration", () => {
       applicantOwner,
       "accept-applicant",
     );
-    const proposal = await createProposal(targetPost, applicantTeam, applicantOwner);
+    const proposal = await createProposal(
+      targetPost,
+      applicantTeam,
+      applicantOwner,
+      "PENDING",
+      applicantPost.id,
+    );
 
     const accepted = await queries.acceptMatchProposal({
       proposalId: proposal.id,
@@ -319,6 +327,7 @@ describeIfSupabase("queries Supabase integration", () => {
       ok: true,
       proposal: {
         id: proposal.id,
+        applicant_post_id: applicantPost.id,
         status: "ACCEPTED",
       },
       match: {
@@ -341,6 +350,43 @@ describeIfSupabase("queries Supabase integration", () => {
       matchId: nextId("match-repeat"),
       confirmedAt: now(),
     })).resolves.toEqual({ ok: false, code: "PROPOSAL_NOT_PENDING" });
+  });
+
+  it("uses the applicant post captured when the proposal was created", async () => {
+    const targetOwner = await createUser("stored-target-owner");
+    const applicantOwner = await createUser("stored-applicant-owner");
+    const targetTeam = await createTeam(targetOwner, "stored-target-team");
+    const applicantTeam = await createTeam(applicantOwner, "stored-applicant-team");
+    const targetPost = await createMatchPost(targetTeam, targetOwner, "stored-target");
+    const originalApplicantPost = await createMatchPost(
+      applicantTeam,
+      applicantOwner,
+      "stored-original-applicant",
+    );
+    const proposal = await createProposal(
+      targetPost,
+      applicantTeam,
+      applicantOwner,
+      "PENDING",
+      originalApplicantPost.id,
+    );
+
+    await queries.closeMatchPostIfOpen(originalApplicantPost.id);
+    const replacementApplicantPost = await createMatchPost(
+      applicantTeam,
+      applicantOwner,
+      "stored-replacement-applicant",
+    );
+
+    await expect(queries.acceptMatchProposal({
+      proposalId: proposal.id,
+      actorUserId: targetOwner.id,
+      matchId: nextId("match-stored-applicant"),
+      confirmedAt: now(),
+    })).resolves.toEqual({ ok: false, code: "MATCH_POST_ALREADY_CLOSED" });
+    await expect(
+      queries.findMatchPostById(replacementApplicantPost.id),
+    ).resolves.toMatchObject({ status: "OPEN" });
   });
 
   it("lazy-closes expired match posts when fetched by id", async () => {
