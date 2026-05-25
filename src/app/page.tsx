@@ -18,20 +18,20 @@ type Props = {
 
 const quickFlow = [
   {
-    title: "Discord 로그인",
-    description: "팀장 세션을 만들고 현재 사용자 상태를 고정합니다.",
+    title: "팀장 로그인",
+    description: "디스코드 계정으로 팀 운영 권한을 확인합니다.",
   },
   {
     title: "팀 생성",
-    description: "팀 이름과 운영 정보를 저장해 관리 화면의 기준점을 만듭니다.",
+    description: "팀 이름, 소개, 활동 시간을 등록합니다.",
   },
   {
     title: "초대 링크 발급",
-    description: "합류 링크를 만들고 멤버 유입 플로우를 검증합니다.",
+    description: "팀원에게 공유할 합류 링크를 만듭니다.",
   },
   {
-    title: "매칭 등록",
-    description: "활성 팀 상태를 바탕으로 OPEN 스크림 글을 등록합니다.",
+    title: "상대 팀 신청",
+    description: "모집글을 올리고 조건이 맞는 팀에 신청합니다.",
   },
 ];
 
@@ -46,21 +46,21 @@ export default async function Home({ searchParams }: Props) {
       <Card className="overflow-hidden">
         <CardContent className="grid gap-8 px-6 py-8 lg:grid-cols-[1.25fr_0.9fr] lg:px-10 lg:py-10">
           <div className="space-y-6">
-            <Badge>Scrim Finder MVP</Badge>
+            <Badge>ScrimFinder</Badge>
             <div className="space-y-4">
               <h1 className="max-w-4xl text-4xl font-semibold text-balance sm:text-5xl lg:text-6xl">
-                팀 운영과 스크림 모집 흐름을 한 화면에서 검증하는 e-sports control room.
+                스크림을 잡기 위한 팀 등록, 모집, 신청 흐름을 한 곳에서 처리합니다.
               </h1>
               <p className="max-w-2xl text-base leading-7 text-muted-foreground sm:text-lg">
-                현재 범위는 Discord 로그인, 팀 생성, 초대 링크 발급, 링크 기반 팀 합류, 매칭 등록까지입니다.
-                Riot 연동 전 단계의 운영 플로우를 먼저 검증합니다.
+                디스코드로 팀장을 확인하고, 5인 로스터를 만든 뒤, 조건이 맞는 상대 팀 모집글에 수동
+                매칭 신청을 보낼 수 있습니다.
               </p>
             </div>
             <div className="flex flex-wrap gap-3">
               {user ? (
                 <Button asChild size="lg">
-                  <Link href={team ? `/teams/${team.id}` : "/dashboard"}>
-                    {team ? "팀 관리 열기" : "대시보드 이동"}
+                  <Link href={team ? "/matches" : "/dashboard"}>
+                    {team ? "매칭 탐색" : "운영 홈"}
                     <ArrowRight />
                   </Link>
                 </Button>
@@ -102,7 +102,7 @@ export default async function Home({ searchParams }: Props) {
             ) : (
               <StatusAlert
                 title="세션 없음"
-                description="아직 로그인하지 않았습니다. 먼저 Discord 로그인으로 팀장 세션을 만든 뒤 관리 플로우를 검증하세요."
+                description="디스코드 로그인 후 팀을 만들고 스크림 모집을 시작할 수 있습니다."
               />
             )}
           </div>
@@ -110,18 +110,18 @@ export default async function Home({ searchParams }: Props) {
           <div className="grid gap-4 self-start">
             <StatCard
               label="현재 상태"
-              value={user ? (team ? "팀 운영 가능" : "팀 생성 대기") : "로그인 필요"}
-              hint={user ? "세션이 활성화되어 있습니다." : "대시보드 접근 전 인증이 필요합니다."}
+              value={user ? (team ? "매칭 준비 중" : "팀 생성 대기") : "로그인 필요"}
+              hint={user ? "운영 홈에서 다음 행동을 확인할 수 있습니다." : "디스코드 로그인이 필요합니다."}
             />
             <StatCard
-              label="핵심 검증"
-              value="Invite + Match"
-              hint="초대 링크 발급과 OPEN 매칭 등록이 현재 MVP의 핵심입니다."
+              label="핵심 흐름"
+              value="Roster + Match"
+              hint="5인 로스터와 OPEN 모집글이 신청 조건입니다."
             />
             <StatCard
-              label="저장 계층"
-              value="Supabase"
-              hint="환경변수가 설정돼야 동작합니다."
+              label="매칭 방식"
+              value="Manual"
+              hint="상대 팀장이 수락하면 매칭이 확정됩니다."
             />
           </div>
         </CardContent>
@@ -130,8 +130,8 @@ export default async function Home({ searchParams }: Props) {
       <section className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
         <Card>
           <CardHeader>
-            <CardTitle>가장 짧은 검증 경로</CardTitle>
-            <CardDescription>실제 운영 감각으로 빠르게 시스템을 통과시키는 추천 순서입니다.</CardDescription>
+            <CardTitle>시작 순서</CardTitle>
+            <CardDescription>팀장이 처음 들어왔을 때 이어가면 되는 기본 흐름입니다.</CardDescription>
           </CardHeader>
           <CardContent className="grid gap-3">
             {quickFlow.map((item, index) => (
@@ -146,19 +146,19 @@ export default async function Home({ searchParams }: Props) {
 
         <Card>
           <CardHeader>
-            <CardTitle>현재 제약</CardTitle>
-            <CardDescription>지금은 팀과 운영 플로우 검증이 우선이고, Riot 연동은 다음 단계입니다.</CardDescription>
+            <CardTitle>현재 가능한 일</CardTitle>
+            <CardDescription>자동 매칭보다 수동 매칭 흐름을 먼저 안정화합니다.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-5">
             <div className="grid gap-4 sm:grid-cols-3">
               <StatCard label="인증" value={<ShieldCheck className="size-5" />} hint="Discord OAuth 기반" />
               <StatCard label="팀 운영" value={<Users className="size-5" />} hint="팀 생성, 멤버 합류" />
-              <StatCard label="스크림" value={<Swords className="size-5" />} hint="OPEN 매칭 등록" />
+              <StatCard label="스크림" value={<Swords className="size-5" />} hint="모집글 탐색, 신청, 수락" />
             </div>
             <Separator />
             <p className="text-sm leading-7 text-muted-foreground">
-              RSO는 API 키와 권한 준비 후 다시 붙일 예정입니다. 이번 리디자인에서는 팀 관리와 매칭
-              등록 흐름이 더 선명하게 보이는 것이 목표입니다.
+              지금은 팀장이 직접 모집글을 보고 신청하거나 수락하는 흐름에 집중합니다. 자동 매칭은
+              수동 매칭 사용감이 충분히 안정된 뒤 붙이는 것이 맞습니다.
             </p>
           </CardContent>
         </Card>
@@ -168,15 +168,15 @@ export default async function Home({ searchParams }: Props) {
         <CardContent className="space-y-6 px-6 py-6">
           <SectionHeader
             eyebrow="Quick Checks"
-            title="수동 확인 포인트"
-            description="첫 검증에서 꼭 확인해야 하는 행동 기준입니다."
+            title="사용자 관점 체크"
+            description="처음 사용하는 팀장이 화면에서 확인해야 하는 핵심 상태입니다."
           />
           <div className="grid gap-3 lg:grid-cols-2">
-            <CheckItem title="로그인 후 `/dashboard` 에서 사용자명이 보여야 합니다." done={Boolean(user)} />
-            <CheckItem title="팀 생성 후 팀 상세 페이지로 이동해야 합니다." done={Boolean(team)} />
-            <CheckItem title="초대 링크 생성 후 `/join/{token}` 경로가 열려야 합니다." />
-            <CheckItem title="합류 후 팀 상세의 멤버 수가 증가해야 합니다." />
-            <CheckItem title="매칭 등록 후 팀 페이지에 OPEN 상태 글이 보여야 합니다." />
+            <CheckItem title="운영 홈에서 다음 행동이 바로 보여야 합니다." done={Boolean(user)} />
+            <CheckItem title="팀 생성 후 팀 관리 화면에서 초대 링크를 만들 수 있어야 합니다." done={Boolean(team)} />
+            <CheckItem title="팀원이 링크로 합류하면 로스터 수가 증가해야 합니다." />
+            <CheckItem title="로스터 5명이 되면 모집글을 등록할 수 있어야 합니다." />
+            <CheckItem title="매칭 탐색에서 상대 팀을 찾고 신청할 수 있어야 합니다." />
           </div>
         </CardContent>
       </Card>

@@ -41,7 +41,7 @@ dbTest.describe("Tier B Supabase-backed E2E flows", () => {
     await loginAs(page.context(), owner.id);
     await page.goto("/dashboard");
 
-    await expect(page.locator("h1")).toContainText(owner.username);
+    await expect(page.getByText(`로그인: ${owner.username}`)).toBeVisible();
     await expect(page.locator('a[href="/teams/new"]')).toBeVisible();
 
     await page.goto("/teams/new");
@@ -357,6 +357,57 @@ dbTest.describe("Tier B Supabase-backed E2E flows", () => {
     await page.goto(`/teams/${applicantTeam.id}`);
     await expect(
       page.getByText(`${applicantPost.title} vs ${targetPost.title}`),
+    ).toBeVisible();
+  });
+
+  dbTest("finds and proposes a match through the discovery UI", async ({
+    page,
+    world,
+  }) => {
+    const targetOwner = await world.createUser("discovery-target-owner");
+    const applicantOwner = await world.createUser("discovery-applicant-owner");
+    const targetTeam = await world.createTeam(targetOwner, "discovery-target");
+    const applicantTeam = await world.createTeam(applicantOwner, "discovery-applicant");
+    await world.createFullRoster(targetTeam);
+    await world.createFullRoster(applicantTeam);
+    const targetPost = await world.createMatchPost(
+      targetTeam,
+      targetOwner,
+      "discovery-target",
+    );
+    const applicantPost = await world.createMatchPost(
+      applicantTeam,
+      applicantOwner,
+      "discovery-applicant",
+    );
+
+    await loginAs(page.context(), applicantOwner.id);
+    await page.goto("/matches");
+    await expect(
+      page.getByRole("heading", {
+        name: "조건이 맞는 상대 팀을 찾고 바로 신청하세요.",
+      }),
+    ).toBeVisible();
+
+    const card = page.getByTestId(`match-discovery-card-${targetPost.id}`);
+    await expect(card).toContainText(targetTeam.name);
+    await expect(card).toContainText(targetPost.title);
+
+    await Promise.all([
+      page.waitForURL(/proposalSent=1/),
+      card.getByRole("button", { name: "매칭 신청" }).click(),
+    ]);
+
+    await expect(page.getByText("매칭 신청 완료")).toBeVisible();
+    const proposal = await world.findLatestProposal(targetPost, applicantTeam);
+    expect(proposal).toMatchObject({
+      status: "PENDING",
+      applicantPostId: applicantPost.id,
+    });
+    await expect(
+      page.getByTestId(`match-discovery-card-${targetPost.id}`).getByRole("button", {
+        name: "신청 대기 중",
+      }),
     ).toBeVisible();
   });
 });
