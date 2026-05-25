@@ -42,6 +42,14 @@ export const _proposeMatch = async (
   if (!applicantOpenPost)
     return { ok: false, code: "APPLICANT_OPEN_MATCH_NOT_FOUND" };
 
+  const existingProposals = await db.listMatchProposals({
+    postId: targetPost.id,
+    teamId: ctx.team.id,
+  });
+  if (existingProposals.some((proposal) => proposal.status === "PENDING")) {
+    return { ok: false, code: "MATCH_PROPOSAL_ALREADY_EXISTS" };
+  }
+
   const now = new Date().toISOString();
   const proposal = await db.insertMatchProposal({
     id: createId(),
@@ -74,49 +82,26 @@ export const _acceptMatchProposal = async (
   db: Queries = queries,
   notifications: NotificationService = defaultNotificationService,
 ): Promise<AcceptMatchProposalEndpoint["response"]> => {
-  const proposal = await assertPendingProposal(req.proposalId, db);
-  if ("error" in proposal) return { ok: false, code: proposal.error };
-
-  const targetPost = await db.findMatchPostById(proposal.post_id);
-  if (!targetPost) return { ok: false, code: "MATCH_POST_NOT_FOUND" };
-
-  const targetTeam = await db.findTeamById(targetPost.team_id);
-  if (!targetTeam) return { ok: false, code: "TEAM_NOT_FOUND" };
-  if (targetTeam.owner_user_id !== ctx.actor.id)
-    return { ok: false, code: "FORBIDDEN" };
-
-  const applicantPost = await db.findOpenMatchPost(proposal.applicant_team_id);
-  if (!applicantPost)
-    return { ok: false, code: "APPLICANT_OPEN_MATCH_NOT_FOUND" };
-
-  const closedTargetPost = await db.closeMatchPostIfOpen(targetPost.id);
-  const closedApplicantPost = await db.closeMatchPostIfOpen(applicantPost.id);
-  if (!closedTargetPost || !closedApplicantPost) {
-    return { ok: false, code: "MATCH_POST_ALREADY_CLOSED" };
-  }
-
   const confirmedAt = new Date().toISOString();
-  const match = await db.insertMatch({
-    id: createId(),
-    left_post_id: targetPost.id,
-    right_post_id: applicantPost.id,
-    left_team_id: targetPost.team_id,
-    right_team_id: proposal.applicant_team_id,
-    origin: "MANUAL",
-    confirmed_at: confirmedAt,
+  const accepted = await db.acceptMatchProposal({
+    proposalId: req.proposalId,
+    actorUserId: ctx.actor.id,
+    matchId: createId(),
+    confirmedAt,
   });
-  const acceptedProposal = await db.updateMatchProposalStatus(
-    proposal.id,
-    "ACCEPTED",
-  );
+  if (!accepted.ok) return { ok: false, code: accepted.code };
 
-  await notifications.sendMatchConfirmedNotification(match.id);
+  try {
+    await notifications.sendMatchConfirmedNotification(accepted.match.id);
+  } catch (error) {
+    console.error("MATCH_CONFIRMED_NOTIFICATION_FAILED", error);
+  }
 
   return {
     ok: true,
     data: {
-      proposal: rowToMatchProposalView(acceptedProposal),
-      match: rowToMatchView(match),
+      proposal: rowToMatchProposalView(accepted.proposal),
+      match: rowToMatchView(accepted.match),
     },
   };
 };

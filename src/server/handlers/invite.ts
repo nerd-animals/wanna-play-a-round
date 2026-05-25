@@ -19,7 +19,6 @@ function isInviteExpired(expiresAt: string | null): boolean {
   return Boolean(expiresAt && new Date(expiresAt).getTime() < Date.now());
 }
 
-const TEAM_ROSTER_SIZE = 5;
 const LOL_TIERS: LolTier[] = [
   "IRON",
   "BRONZE",
@@ -110,67 +109,28 @@ export async function _joinByInvite(
   const riotProfile = normalizeRiotProfile(req);
   if (!riotProfile) return { ok: false, code: "RIOT_PROFILE_REQUIRED" };
 
-  let member = await db.findTeamMemberByUserId(team.id, ctx.actor.id);
-
   const joinedAt = new Date().toISOString();
   const displayName = `${riotProfile.riotGameName}#${riotProfile.riotTagLine}`;
 
-  if (member?.status === "ACTIVE") {
-    member = await db.updateTeamMember({
-      ...member,
-      display_name: displayName,
-      riot_game_name: riotProfile.riotGameName,
-      riot_tag_line: riotProfile.riotTagLine,
-      solo_tier: riotProfile.soloTier,
-    });
-    return {
-      ok: true,
-      data: {
-        member: rowToTeamMemberView(member),
-        teamId: team.id,
-        reusedExistingMembership: true,
-      },
-    };
-  }
-
-  const members = await db.listTeamMembers(team.id);
-  const activeCount = members.filter((m) => m.status === "ACTIVE").length;
-  if (activeCount >= TEAM_ROSTER_SIZE) return { ok: false, code: "TEAM_FULL" };
-
-  if (member) {
-    member = await db.updateTeamMember({
-      ...member,
-      status: "ACTIVE",
-      display_name: displayName,
-      riot_game_name: riotProfile.riotGameName,
-      riot_tag_line: riotProfile.riotTagLine,
-      solo_tier: riotProfile.soloTier,
-      joined_at: joinedAt,
-    });
-  } else {
-    member = await db.insertTeamMember({
-      id: createId(),
-      team_id: team.id,
-      user_id: ctx.actor.id,
-      display_name: displayName,
-      riot_game_name: riotProfile.riotGameName,
-      riot_tag_line: riotProfile.riotTagLine,
-      solo_tier: riotProfile.soloTier,
-      role: "MEMBER",
-      status: "ACTIVE",
-      created_at: joinedAt,
-      joined_at: joinedAt,
-    });
-  }
-
-  await db.incrementInviteLinkUsedCount(link.id);
+  const joined = await db.joinTeamByInvite({
+    inviteLinkId: link.id,
+    teamId: team.id,
+    memberId: createId(),
+    userId: ctx.actor.id,
+    displayName,
+    riotGameName: riotProfile.riotGameName,
+    riotTagLine: riotProfile.riotTagLine,
+    soloTier: riotProfile.soloTier,
+    joinedAt,
+  });
+  if (!joined.ok) return { ok: false, code: joined.code };
 
   return {
     ok: true,
     data: {
-      member: rowToTeamMemberView(member),
+      member: rowToTeamMemberView(joined.member),
       teamId: team.id,
-      reusedExistingMembership: false,
+      reusedExistingMembership: joined.reusedExistingMembership,
     },
   };
 }

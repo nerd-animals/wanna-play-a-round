@@ -9,6 +9,73 @@ import type {
   TeamRow,
   UserRow,
 } from "./rows";
+import type {
+  LolTier,
+  MatchOrigin,
+  MatchProposalStatus,
+  TeamMemberRole,
+  TeamMemberStatus,
+} from "@/shared/domain";
+import type { InviteErrorCode } from "@/shared/contracts/invite";
+import type { MatchProposalErrorCode } from "@/shared/contracts/match-proposals";
+
+type JoinTeamByInviteErrorCode =
+  | InviteErrorCode
+  | "TEAM_NOT_FOUND";
+
+type JoinTeamByInviteRpcRow = {
+  result_code: "OK_CREATED" | "OK_REUSED" | JoinTeamByInviteErrorCode;
+  member_id: string | null;
+  member_team_id: string | null;
+  member_user_id: string | null;
+  member_display_name: string | null;
+  member_riot_game_name: string | null;
+  member_riot_tag_line: string | null;
+  member_solo_tier: LolTier | null;
+  member_role: TeamMemberRole | null;
+  member_status: TeamMemberStatus | null;
+  member_created_at: string | null;
+  member_joined_at: string | null;
+};
+
+export type JoinTeamByInviteResult =
+  | {
+      ok: true;
+      member: TeamMemberRow;
+      reusedExistingMembership: boolean;
+    }
+  | { ok: false; code: JoinTeamByInviteErrorCode };
+
+type AcceptMatchProposalErrorCode =
+  | MatchProposalErrorCode
+  | "FORBIDDEN"
+  | "TEAM_NOT_FOUND";
+
+type AcceptMatchProposalRpcRow = {
+  result_code: "OK" | AcceptMatchProposalErrorCode;
+  proposal_id: string | null;
+  proposal_post_id: string | null;
+  proposal_applicant_team_id: string | null;
+  proposal_status: MatchProposalStatus | null;
+  proposal_created_by_user_id: string | null;
+  proposal_created_at: string | null;
+  proposal_updated_at: string | null;
+  match_id: string | null;
+  match_left_post_id: string | null;
+  match_right_post_id: string | null;
+  match_left_team_id: string | null;
+  match_right_team_id: string | null;
+  match_origin: MatchOrigin | null;
+  match_confirmed_at: string | null;
+};
+
+export type AcceptMatchProposalResult =
+  | {
+      ok: true;
+      proposal: MatchProposalRow;
+      match: MatchRow;
+    }
+  | { ok: false; code: AcceptMatchProposalErrorCode };
 
 function unwrap<T>(
   data: T | null,
@@ -23,7 +90,7 @@ function unwrap<T>(
 function isPastAvailableTime(value: string | null): boolean {
   if (!value) return false;
   const time = new Date(value).getTime();
-  return Number.isFinite(time) && time < Date.now();
+  return !Number.isFinite(time) || time < Date.now();
 }
 
 async function closeExpiredOpenMatchPosts(
@@ -54,6 +121,77 @@ async function closeExpiredOpenMatchPosts(
       ? { ...row, status: "CLOSED", updated_at: updatedAt }
       : row,
   );
+}
+
+function requireTeamMemberFromJoinRpc(row: JoinTeamByInviteRpcRow): TeamMemberRow {
+  if (
+    !row.member_id ||
+    !row.member_team_id ||
+    !row.member_role ||
+    !row.member_status ||
+    !row.member_created_at
+  ) {
+    throw new Error("JOIN_TEAM_BY_INVITE_MISSING_MEMBER");
+  }
+
+  return {
+    id: row.member_id,
+    team_id: row.member_team_id,
+    user_id: row.member_user_id,
+    display_name: row.member_display_name,
+    riot_game_name: row.member_riot_game_name,
+    riot_tag_line: row.member_riot_tag_line,
+    solo_tier: row.member_solo_tier,
+    role: row.member_role,
+    status: row.member_status,
+    created_at: row.member_created_at,
+    joined_at: row.member_joined_at,
+  };
+}
+
+function requireAcceptedMatchFromRpc(row: AcceptMatchProposalRpcRow): {
+  proposal: MatchProposalRow;
+  match: MatchRow;
+} {
+  if (
+    !row.proposal_id ||
+    !row.proposal_post_id ||
+    !row.proposal_applicant_team_id ||
+    !row.proposal_status ||
+    !row.proposal_created_by_user_id ||
+    !row.proposal_created_at ||
+    !row.proposal_updated_at ||
+    !row.match_id ||
+    !row.match_left_post_id ||
+    !row.match_right_post_id ||
+    !row.match_left_team_id ||
+    !row.match_right_team_id ||
+    !row.match_origin ||
+    !row.match_confirmed_at
+  ) {
+    throw new Error("ACCEPT_MATCH_PROPOSAL_MISSING_ROWS");
+  }
+
+  return {
+    proposal: {
+      id: row.proposal_id,
+      post_id: row.proposal_post_id,
+      applicant_team_id: row.proposal_applicant_team_id,
+      status: row.proposal_status,
+      created_by_user_id: row.proposal_created_by_user_id,
+      created_at: row.proposal_created_at,
+      updated_at: row.proposal_updated_at,
+    },
+    match: {
+      id: row.match_id,
+      left_post_id: row.match_left_post_id,
+      right_post_id: row.match_right_post_id,
+      left_team_id: row.match_left_team_id,
+      right_team_id: row.match_right_team_id,
+      origin: row.match_origin,
+      confirmed_at: row.match_confirmed_at,
+    },
+  };
 }
 
 export const queries = {
@@ -255,6 +393,47 @@ export const queries = {
       throw new Error(`INVITE_LINKS_INCREMENT_USED_COUNT_FAILED:${error.message}`);
   },
 
+  async joinTeamByInvite(input: {
+    inviteLinkId: string;
+    teamId: string;
+    memberId: string;
+    userId: string;
+    displayName: string;
+    riotGameName: string;
+    riotTagLine: string;
+    soloTier: LolTier;
+    joinedAt: string;
+  }): Promise<JoinTeamByInviteResult> {
+    const client = getSupabaseAdminClient();
+    const { data, error } = await client
+      .rpc("join_team_by_invite", {
+        p_link_id: input.inviteLinkId,
+        p_team_id: input.teamId,
+        p_member_id: input.memberId,
+        p_user_id: input.userId,
+        p_display_name: input.displayName,
+        p_riot_game_name: input.riotGameName,
+        p_riot_tag_line: input.riotTagLine,
+        p_solo_tier: input.soloTier,
+        p_joined_at: input.joinedAt,
+      })
+      .single<JoinTeamByInviteRpcRow>();
+
+    if (error)
+      throw new Error(`JOIN_TEAM_BY_INVITE_FAILED:${error.message}`);
+    if (!data) throw new Error("JOIN_TEAM_BY_INVITE_FAILED:EMPTY");
+
+    if (data.result_code !== "OK_CREATED" && data.result_code !== "OK_REUSED") {
+      return { ok: false, code: data.result_code };
+    }
+
+    return {
+      ok: true,
+      member: requireTeamMemberFromJoinRpc(data),
+      reusedExistingMembership: data.result_code === "OK_REUSED",
+    };
+  },
+
   async findInviteLinkByToken(token: string): Promise<InviteLinkRow | null> {
     const client = getSupabaseAdminClient();
     const { data, error } = await client
@@ -307,7 +486,8 @@ export const queries = {
       .eq("id", id)
       .maybeSingle<MatchPostRow>();
     if (error) throw new Error(`MATCH_POSTS_FIND_BY_ID_FAILED:${error.message}`);
-    return data;
+    const [row] = await closeExpiredOpenMatchPosts(data ? [data] : []);
+    return row ?? null;
   },
 
   async findOpenMatchPost(teamId: string): Promise<MatchPostRow | null> {
@@ -402,6 +582,36 @@ export const queries = {
       .select()
       .single<MatchProposalRow>();
     return unwrap(data, error, "MATCH_PROPOSALS_UPDATE_STATUS_FAILED");
+  },
+
+  async acceptMatchProposal(input: {
+    proposalId: string;
+    actorUserId: string;
+    matchId: string;
+    confirmedAt: string;
+  }): Promise<AcceptMatchProposalResult> {
+    const client = getSupabaseAdminClient();
+    const { data, error } = await client
+      .rpc("accept_match_proposal", {
+        p_proposal_id: input.proposalId,
+        p_actor_user_id: input.actorUserId,
+        p_match_id: input.matchId,
+        p_confirmed_at: input.confirmedAt,
+      })
+      .single<AcceptMatchProposalRpcRow>();
+
+    if (error)
+      throw new Error(`ACCEPT_MATCH_PROPOSAL_FAILED:${error.message}`);
+    if (!data) throw new Error("ACCEPT_MATCH_PROPOSAL_FAILED:EMPTY");
+
+    if (data.result_code !== "OK") {
+      return { ok: false, code: data.result_code };
+    }
+
+    return {
+      ok: true,
+      ...requireAcceptedMatchFromRpc(data),
+    };
   },
 
   // Matches

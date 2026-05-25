@@ -78,7 +78,7 @@ export function MatchPostForm({ action, cancelHref, tiers }: MatchPostFormProps)
 
       <div className="grid gap-2">
         <Label htmlFor="availableTime">가능 시간</Label>
-        <Input id="availableTime" name="availableTime" placeholder="금요일 22:00-01:00" />
+        <Input id="availableTime" name="availableTime" type="datetime-local" />
       </div>
 
       <div className="flex flex-wrap gap-3 pt-2">

@@ -4,6 +4,7 @@ import type { MatchProposalView, MatchView } from "../domain";
 export type MatchProposalErrorCode =
   | "PROPOSAL_NOT_FOUND"
   | "PROPOSAL_NOT_PENDING"
+  | "MATCH_PROPOSAL_ALREADY_EXISTS"
   | "MATCH_POST_NOT_FOUND"
   | "CANNOT_PROPOSE_TO_OWN_POST"
   | "APPLICANT_OPEN_MATCH_NOT_FOUND"

@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   _acceptMatchProposal,
   _proposeMatch,
@@ -99,6 +99,7 @@ describe("_proposeMatch", () => {
       findMatchPostById: async () => makePost(),
       findOpenMatchPost: async () =>
         makePost({ id: "post-applicant", team_id: applicantTeam.id }),
+      listMatchProposals: async () => [],
       insertMatchProposal: async (row: MatchProposalRow) => {
         inserted.push(row);
         return row;
@@ -119,35 +120,66 @@ describe("_proposeMatch", () => {
       created_by_user_id: applicantOwner.id,
     });
   });
+
+  it("rejects duplicate pending proposals for the same post and applicant team", async () => {
+    const db = {
+      findMatchPostById: async () => makePost(),
+      findOpenMatchPost: async () =>
+        makePost({ id: "post-applicant", team_id: applicantTeam.id }),
+      listMatchProposals: async () => [makeProposal()],
+    } as unknown as Queries;
+
+    await expect(
+      _proposeMatch(
+        { postId: "post-target", teamId: applicantTeam.id },
+        { actor: applicantOwner, team: applicantTeam },
+        db,
+      ),
+    ).resolves.toEqual({ ok: false, code: "MATCH_PROPOSAL_ALREADY_EXISTS" });
+  });
+
+  it("allows a new proposal after a previous proposal was rejected", async () => {
+    const inserted: MatchProposalRow[] = [];
+    const db = {
+      findMatchPostById: async () => makePost(),
+      findOpenMatchPost: async () =>
+        makePost({ id: "post-applicant", team_id: applicantTeam.id }),
+      listMatchProposals: async () => [makeProposal({ status: "REJECTED" })],
+      insertMatchProposal: async (row: MatchProposalRow) => {
+        inserted.push(row);
+        return row;
+      },
+    } as unknown as Queries;
+
+    const res = await _proposeMatch(
+      { postId: "post-target", teamId: applicantTeam.id },
+      { actor: applicantOwner, team: applicantTeam },
+      db,
+    );
+
+    expect(res.ok).toBe(true);
+    expect(inserted).toHaveLength(1);
+  });
 });
 
 describe("_acceptMatchProposal", () => {
-  it("creates a manual match, closes both OPEN posts, accepts proposal, and notifies Discord", async () => {
-    const closedPostIds: string[] = [];
-    const insertedMatches: MatchRow[] = [];
-    const updatedProposalStatuses: string[] = [];
+  it("accepts a proposal atomically and notifies Discord", async () => {
     const notifiedMatchIds: string[] = [];
+    const match = {
+      id: "match-1",
+      left_post_id: "post-target",
+      right_post_id: "post-applicant",
+      left_team_id: targetTeam.id,
+      right_team_id: applicantTeam.id,
+      origin: "MANUAL",
+      confirmed_at: "2026-05-20T00:00:00.000Z",
+    } satisfies MatchRow;
     const db = {
-      findMatchProposalById: async () => makeProposal(),
-      findMatchPostById: async () => makePost(),
-      findTeamById: async () => targetTeam,
-      findOpenMatchPost: async () =>
-        makePost({ id: "post-applicant", team_id: applicantTeam.id }),
-      closeMatchPostIfOpen: async (id: string) => {
-        closedPostIds.push(id);
-        return makePost({ id, status: "CLOSED" });
-      },
-      insertMatch: async (row: MatchRow) => {
-        insertedMatches.push(row);
-        return row;
-      },
-      updateMatchProposalStatus: async (
-        id: string,
-        status: MatchProposalRow["status"],
-      ) => {
-        updatedProposalStatuses.push(`${id}:${status}`);
-        return makeProposal({ id, status });
-      },
+      acceptMatchProposal: async () => ({
+        ok: true,
+        proposal: makeProposal({ status: "ACCEPTED" }),
+        match,
+      }),
     } as unknown as Queries;
 
     const res = await _acceptMatchProposal(
@@ -162,26 +194,22 @@ describe("_acceptMatchProposal", () => {
     );
 
     expect(res.ok).toBe(true);
-    expect(closedPostIds).toEqual(["post-target", "post-applicant"]);
-    expect(insertedMatches[0]).toMatchObject({
-      left_post_id: "post-target",
-      right_post_id: "post-applicant",
-      left_team_id: targetTeam.id,
-      right_team_id: applicantTeam.id,
-      origin: "MANUAL",
+    expect(res).toMatchObject({
+      ok: true,
+      data: {
+        proposal: { status: "ACCEPTED" },
+        match: { id: "match-1" },
+      },
     });
-    expect(updatedProposalStatuses).toEqual(["proposal-1:ACCEPTED"]);
-    expect(notifiedMatchIds).toEqual([insertedMatches[0].id]);
+    expect(notifiedMatchIds).toEqual(["match-1"]);
   });
 
-  it("returns MATCH_POST_ALREADY_CLOSED when a conditional close loses the race", async () => {
+  it("returns MATCH_POST_ALREADY_CLOSED when the atomic accept loses the race", async () => {
     const db = {
-      findMatchProposalById: async () => makeProposal(),
-      findMatchPostById: async () => makePost(),
-      findTeamById: async () => targetTeam,
-      findOpenMatchPost: async () =>
-        makePost({ id: "post-applicant", team_id: applicantTeam.id }),
-      closeMatchPostIfOpen: async () => null,
+      acceptMatchProposal: async () => ({
+        ok: false,
+        code: "MATCH_POST_ALREADY_CLOSED",
+      }),
     } as unknown as Queries;
 
     await expect(
@@ -189,6 +217,52 @@ describe("_acceptMatchProposal", () => {
         sendMatchConfirmedNotification: async () => undefined,
       }),
     ).resolves.toEqual({ ok: false, code: "MATCH_POST_ALREADY_CLOSED" });
+  });
+
+  it("still succeeds when Discord notification fails after acceptance", async () => {
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const db = {
+      acceptMatchProposal: async () => ({
+        ok: true,
+        proposal: makeProposal({ status: "ACCEPTED" }),
+        match: {
+          id: "match-1",
+          left_post_id: "post-target",
+          right_post_id: "post-applicant",
+          left_team_id: targetTeam.id,
+          right_team_id: applicantTeam.id,
+          origin: "MANUAL",
+          confirmed_at: "2026-05-20T00:00:00.000Z",
+        } satisfies MatchRow,
+      }),
+    } as unknown as Queries;
+
+    try {
+      const res = await _acceptMatchProposal(
+        { proposalId: "proposal-1" },
+        { actor: owner },
+        db,
+        {
+          sendMatchConfirmedNotification: async () => {
+            throw new Error("discord down");
+          },
+        },
+      );
+
+      expect(res).toMatchObject({
+        ok: true,
+        data: {
+          proposal: { status: "ACCEPTED" },
+          match: { id: "match-1" },
+        },
+      });
+      expect(errorSpy).toHaveBeenCalledWith(
+        "MATCH_CONFIRMED_NOTIFICATION_FAILED",
+        expect.any(Error),
+      );
+    } finally {
+      errorSpy.mockRestore();
+    }
   });
 });
 
