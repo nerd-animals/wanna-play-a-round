@@ -408,6 +408,18 @@ export class E2EWorld {
     return row.used_count;
   }
 
+  async getInviteStatus(invite: TestInvite): Promise<string> {
+    const row = await must<{ status: string }>(
+      "get invite status",
+      this.client
+        .from("team_invite_links")
+        .select("status")
+        .eq("id", invite.id)
+        .single(),
+    );
+    return row.status;
+  }
+
   async getTeamMember(
     team: TestTeam,
     user: TestUser,

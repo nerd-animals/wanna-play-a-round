@@ -12,8 +12,6 @@ export type InviteErrorCode =
 // POST /api/teams/:teamId/invite-links
 export interface CreateInviteLinkRequest {
   teamId: string;
-  maxUses?: number;
-  expiresAt?: string;
 }
 export interface CreateInviteLinkEndpoint {
   method: "POST";

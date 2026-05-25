@@ -79,14 +79,24 @@ dbTest.describe("Tier B Supabase-backed E2E flows", () => {
 
     await loginAs(page.context(), owner.id);
     await page.goto(`/teams/${team.id}`);
-    await page.locator('form[action$="/invite-links"] input[name="maxUses"]').fill("5");
 
     await Promise.all([
       page.waitForURL(/inviteCreated=1/),
       page.locator('form[action$="/invite-links"] button[type="submit"]').click(),
     ]);
 
+    const firstInvite = await world.findLatestInvite(team);
+    await expect(page.getByText(`/join/${firstInvite.token}`)).toBeVisible();
+
+    await page.goto(`/teams/${team.id}`);
+    await Promise.all([
+      page.waitForURL(/inviteCreated=1/),
+      page.getByRole("button", { name: "초대 링크 재발급" }).click(),
+    ]);
+
     const invite = await world.findLatestInvite(team);
+    expect(invite.token).not.toBe(firstInvite.token);
+    await expect.poll(() => world.getInviteStatus(firstInvite)).toBe("DISABLED");
     await expect(page.getByText(`/join/${invite.token}`)).toBeVisible();
 
     await loginAs(page.context(), joiner.id);
